@@ -80,7 +80,7 @@ export function registerPlaylistHandlers(
       if (!playlistId || isNaN(playlistId)) {
         return jsonResponse({ success: false, error: 'invalid playlist id' });
       }
-      const songs = mimusic.playlists.getSongs(playlistId);
+      const songs = mimusic.playlists.getSongs(playlistId, { limit: 100000 });
       return jsonResponse({ success: true, data: songs });
     } catch (e: any) {
       return jsonResponse({ success: false, error: e.message || String(e) });

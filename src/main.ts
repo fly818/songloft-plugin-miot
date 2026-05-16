@@ -21,6 +21,7 @@ import { registerConversationHandlers } from './handlers/conversation';
 import { registerScheduleHandlers } from './handlers/schedule';
 import { registerVoiceCommandHandlers } from './handlers/voice_command';
 import { registerIndexingHandlers } from './handlers/indexing';
+import { setHostBaseUrl } from './utils/http';
 
 const router = createRouter();
 
@@ -48,6 +49,13 @@ function onInit(): void {
   minaService = new MinaService(accountManager, configManager);
   playlistManagerMap = new PlaylistManagerMap(minaService, configManager);
 
+  // 从配置中读取服务器地址并设置宿主 API 基础 URL
+  const pluginConfig = configManager.getConfig();
+  if (pluginConfig.server_host) {
+    setHostBaseUrl(pluginConfig.server_host);
+    mimusic.log.info('宿主 API 基础 URL 已设置: ' + pluginConfig.server_host);
+  }
+
   const executor = new TaskExecutor(configManager, accountManager, minaService, playlistManagerMap, indexingManager);
   scheduler = new Scheduler(configManager, executor);
 
@@ -70,18 +78,17 @@ function onInit(): void {
   indexingManager.refresh();
 
   // 根据配置启动后台服务
-  const config = configManager.getConfig();
-  if (config.scheduled_tasks_enabled) {
+  if (pluginConfig.scheduled_tasks_enabled) {
     scheduler.start();
   }
-  if (config.conversation_monitor_enabled) {
+  if (pluginConfig.conversation_monitor_enabled) {
     conversationMonitor.start((msg) => {
-      if (config.voice_command_enabled) {
+      if (pluginConfig.voice_command_enabled) {
         voiceEngine.handleMessage(msg);
       }
     });
   }
-  if (config.voice_command_enabled) {
+  if (pluginConfig.voice_command_enabled) {
     voiceEngine.setEnabled(true);
   }
 

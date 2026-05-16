@@ -42,6 +42,8 @@ export interface PollResult {
   message: string;
   /** 成功时返回 Token 信息 */
   tokenInfo?: XiaomiTokenInfo;
+  /** 成功时返回实际的账号 ID（userId），供前端更新本地引用 */
+  account_id?: string;
 }
 
 // ===== QRCodeLogin 类 =====

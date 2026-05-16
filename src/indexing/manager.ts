@@ -1,8 +1,6 @@
 // 小米音箱插件 - 索引管理模块
 // 从 MiMusic 主程序API获取歌曲/歌单数据，建立内存索引，提供模糊搜索
 
-import { callHostAPI } from '../utils/http';
-
 // ===== 类型定义 =====
 
 /** 索引中的歌曲信息 */
@@ -35,33 +33,6 @@ export interface IndexStatus {
 interface ScoredResult<T> {
   item: T;
   score: number;
-}
-
-// ===== 宿主API响应类型 =====
-
-interface PlaylistsResponse {
-  code: number;
-  data: {
-    playlists: Array<{
-      id: number;
-      name: string;
-      song_count: number;
-    }>;
-    total: number;
-  };
-}
-
-interface SongsResponse {
-  code: number;
-  data: {
-    songs: Array<{
-      id: number;
-      title: string;
-      artist: string;
-      album: string;
-    }>;
-    total: number;
-  };
 }
 
 // ===== 模糊搜索算法 =====
@@ -235,20 +206,18 @@ export class IndexingManager {
    * 刷新索引（从宿主API获取最新数据）
    * @returns 刷新结果
    */
-  async refresh(): Promise<{ success: boolean; songCount: number; playlistCount: number }> {
+  refresh(): { success: boolean; songCount: number; playlistCount: number } {
     if (this.isRefreshing) {
       return { success: false, songCount: this.songs.length, playlistCount: this.playlists.length };
     }
 
     this.isRefreshing = true;
     try {
-      // 1. 获取歌单列表
-      const playlistsResp = await callHostAPI<PlaylistsResponse>('GET', '/api/v1/playlists?limit=100000');
-      const rawPlaylists = playlistsResp?.data?.playlists ?? [];
+      // 1. 获取歌单列表（桥接直接返回数组）
+      const rawPlaylists = mimusic.playlists.list() ?? [];
 
-      // 2. 获取歌曲列表
-      const songsResp = await callHostAPI<SongsResponse>('GET', '/api/v1/songs?limit=10000');
-      const rawSongs = songsResp?.data?.songs ?? [];
+      // 2. 获取歌曲列表（桥接直接返回数组）
+      const rawSongs = mimusic.songs.list({ limit: 10000 }) ?? [];
 
       // 3. 构建歌单索引
       const newPlaylists: IndexedPlaylist[] = rawPlaylists.map(pl => ({

@@ -9,11 +9,11 @@ importers:
   .:
     devDependencies:
       '@mimusic/plugin-builder':
-        specifier: ^0.6.4
-        version: 0.6.4
+        specifier: ^0.6.5
+        version: 0.6.5
       '@mimusic/plugin-sdk':
-        specifier: ^0.6.4
-        version: 0.6.4
+        specifier: ^0.6.5
+        version: 0.6.5
       typescript:
         specifier: ^5.9.3
         version: 5.9.3
@@ -180,33 +180,33 @@ packages:
     resolution: {integrity: sha512-AokJm4tuBHillT+FpMtxQ60n8ObyXBatq7jD2/JA9dxbDDokKQm8KMht5ibGzLVU9IJDIKK4TPKgMHEYMn3lMg==}
     engines: {node: '>=18'}
 
-  '@mimusic/jsc-darwin-arm64@0.6.4':
-    resolution: {integrity: sha512-OoaVOaeyph4GwZD4JnNCmzr2GYL172XfRV8dOewoxwhFsrYjvdmHPadYqnODcet0Pf7souO8FAWJWGVkQgtwCQ==}
+  '@mimusic/jsc-darwin-arm64@0.6.5':
+    resolution: {integrity: sha512-G+Jbnivnw2nVxmbXpDPGxTamq9e48K57qY016gcfIPkYmX15MAIjGdxjWb2PQseZI2X8mIyaoXQmQJ6hh6KERw==}
 
-  '@mimusic/jsc-darwin-x64@0.6.4':
-    resolution: {integrity: sha512-8iT39+9dyuv0LPqtVJMnYhCqAWgRRTTA4Mpze3LHEI3xPV34e/4ablVTQBjBUize/OtnPZSy+G+EREWaEGGzow==}
+  '@mimusic/jsc-darwin-x64@0.6.5':
+    resolution: {integrity: sha512-gWCi3KXR6TVfptjWlhuoD3PUTto925NY4TyU8F32to9+/UNZwyGdYnoDuqYEPxtCxHu+6Tpn4kTVGUxTGhZsXQ==}
 
-  '@mimusic/jsc-linux-arm64@0.6.4':
-    resolution: {integrity: sha512-HvNElhJyobMJ5WuuP0Hasn/HfcVERh4aJzXOpGpaz6h9eKneoVPha8Wspbh+eSbxomoX0lCP4J0n6mlnDflWpw==}
+  '@mimusic/jsc-linux-arm64@0.6.5':
+    resolution: {integrity: sha512-9BWlrV2OwmINJEj8iJ2m52p38TzgPfPGkqPIXYVGRGPEQ+7kTQTjKyKgfb4RSG9VSbhVCN0uEWp9jVu67kJzkQ==}
 
-  '@mimusic/jsc-linux-x64@0.6.4':
-    resolution: {integrity: sha512-6kX18a3mNW+KHej1GW9grLM0RvBYvopNIQM7vdHPxnyjb5WnI61OMWeI70P3kKH4RAibb+weHkZqsYQjOb/8gA==}
+  '@mimusic/jsc-linux-x64@0.6.5':
+    resolution: {integrity: sha512-buJVJ2+zizOCXfjEyXtGPNYwLGptdkpTsV2j+baSdz3DLHsnvTD8LixryFTiXG3z6iDFB5m5UoTebYfp0kszzQ==}
 
-  '@mimusic/jsc-win32-arm64@0.6.4':
-    resolution: {integrity: sha512-BzL3EHtw/qASeNFevvR9fv0dN+Fn+wDO9PgfJ1KLTzVd8GVPXArooBNvGVlq3EFN9UuDCoUiy9Jifm2dA6KYgQ==}
+  '@mimusic/jsc-win32-arm64@0.6.5':
+    resolution: {integrity: sha512-/KC2QOa1XCbKSBdPVbvZGr6/7dBKUmt53MCF8dCNd+ATwBArU0xLVJfA4WMF6IpNc+d2csvVZmhzY7HBiO0Mrg==}
 
-  '@mimusic/jsc-win32-x64@0.6.4':
-    resolution: {integrity: sha512-/uiQ4jv3rqaJIQQWlURXbdrC66oSUhy8zq/MuFGLQJBl5m9XBl3iMqB+gBQ7drf6FrhvjXDyAgevLgUeFSB7+g==}
+  '@mimusic/jsc-win32-x64@0.6.5':
+    resolution: {integrity: sha512-V8K7LFuaXff1UY4tSjMnEX8b3smrdlsvWoCSu2R+LPqgGPPw820YsG6deVnsXJe19GFSwgJX5+GvyrfBJCkbqg==}
 
-  '@mimusic/jsc@0.6.4':
-    resolution: {integrity: sha512-D0saRgX12cKl/mrHleqxumTHFsc5Js9BTlDqJYRcUPaWpiiDQRYsmiPH0OQuDNv2/OMBibLMgv0VHnQFs9O28Q==}
+  '@mimusic/jsc@0.6.5':
+    resolution: {integrity: sha512-JpCYqmYTLsbapqFOQ+1cUUwZga9CwKg42AskRkDQqtvfy4wtJ5vJguN7TSd0+NNJTc5487v4qS6Ibpvfaj8Q0w==}
 
-  '@mimusic/plugin-builder@0.6.4':
-    resolution: {integrity: sha512-c+5u7FpkAhUGjnNuHxLb/gC9R4hpn1+cE81WZ28cJwRJQ43QfCamZ9uRnrNXbhQEoFXDUksQgJs14D1+wzqclA==}
+  '@mimusic/plugin-builder@0.6.5':
+    resolution: {integrity: sha512-5hnB15dOaf693ricPy62iDuSJ5aIQu5mz4UbDc0iZHigRWlZxvsXdS3cYyzOVMWxPbpMwv2KEKw28WrsHuYLPQ==}
     hasBin: true
 
-  '@mimusic/plugin-sdk@0.6.4':
-    resolution: {integrity: sha512-p1oG7v40Wluzf9nk2VANVMReKt9iTpVu5yfv7oNzRqGhBHRaSVHzPWtBDgpvTM0vHsY+CJs1g6Vr11Ld5SGlFg==}
+  '@mimusic/plugin-sdk@0.6.5':
+    resolution: {integrity: sha512-PyaiNHtXAJgNV5HZtOIOuZZQ1+pUS55e5HxnHMOEu5mM7lKhiiUKQzxRspozvgjUbe6dBoIHXzcEYp+O/6I/Gg==}
 
   balanced-match@4.0.4:
     resolution: {integrity: sha512-BLrgEcRTwX2o6gGxGOCNyMvGSp35YofuYzw9h1IMTRmKqttAZZVU67bdb9Pr2vUHA8+j3i2tJfjO6C6+4myGTA==}
@@ -408,41 +408,41 @@ snapshots:
 
   '@isaacs/cliui@9.0.0': {}
 
-  '@mimusic/jsc-darwin-arm64@0.6.4':
+  '@mimusic/jsc-darwin-arm64@0.6.5':
     optional: true
 
-  '@mimusic/jsc-darwin-x64@0.6.4':
+  '@mimusic/jsc-darwin-x64@0.6.5':
     optional: true
 
-  '@mimusic/jsc-linux-arm64@0.6.4':
+  '@mimusic/jsc-linux-arm64@0.6.5':
     optional: true
 
-  '@mimusic/jsc-linux-x64@0.6.4':
+  '@mimusic/jsc-linux-x64@0.6.5':
     optional: true
 
-  '@mimusic/jsc-win32-arm64@0.6.4':
+  '@mimusic/jsc-win32-arm64@0.6.5':
     optional: true
 
-  '@mimusic/jsc-win32-x64@0.6.4':
+  '@mimusic/jsc-win32-x64@0.6.5':
     optional: true
 
-  '@mimusic/jsc@0.6.4':
+  '@mimusic/jsc@0.6.5':
     optionalDependencies:
-      '@mimusic/jsc-darwin-arm64': 0.6.4
-      '@mimusic/jsc-darwin-x64': 0.6.4
-      '@mimusic/jsc-linux-arm64': 0.6.4
-      '@mimusic/jsc-linux-x64': 0.6.4
-      '@mimusic/jsc-win32-arm64': 0.6.4
-      '@mimusic/jsc-win32-x64': 0.6.4
+      '@mimusic/jsc-darwin-arm64': 0.6.5
+      '@mimusic/jsc-darwin-x64': 0.6.5
+      '@mimusic/jsc-linux-arm64': 0.6.5
+      '@mimusic/jsc-linux-x64': 0.6.5
+      '@mimusic/jsc-win32-arm64': 0.6.5
+      '@mimusic/jsc-win32-x64': 0.6.5
 
-  '@mimusic/plugin-builder@0.6.4':
+  '@mimusic/plugin-builder@0.6.5':
     dependencies:
-      '@mimusic/jsc': 0.6.4
+      '@mimusic/jsc': 0.6.5
       esbuild: 0.25.12
       glob: 11.1.0
       jszip: 3.10.1
 
-  '@mimusic/plugin-sdk@0.6.4': {}
+  '@mimusic/plugin-sdk@0.6.5': {}
 
   balanced-match@4.0.4: {}
 

@@ -6,6 +6,7 @@ import type { Router, HTTPRequest } from '@mimusic/plugin-sdk';
 import { ConfigManager } from '../config/manager';
 import { ConversationMonitor } from '../conversation/monitor';
 import { Scheduler } from '../schedule/scheduler';
+import { setHostBaseUrl } from '../utils/http';
 
 /** 解析请求体（兼容 Uint8Array 和 string） */
 function parseBody(req: HTTPRequest): any {
@@ -83,6 +84,8 @@ export function registerConfigHandlers(
       // 更新 server_host
       if (body.server_host !== undefined) {
         config.server_host = body.server_host;
+        // 同步更新宿主 API 基础 URL，确保 PlaylistManager/URLBuilder 能读取到最新值
+        setHostBaseUrl(body.server_host || '');
       }
 
       // 更新 timezone

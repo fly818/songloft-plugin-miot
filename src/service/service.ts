@@ -13,18 +13,18 @@ import type { DeviceConfig, MinaDevice } from '../types';
 
 /** 设备信息（合并了API数据和本地配置） */
 export interface DeviceInfo {
-  device_id: string;
-  device_name: string;
+  deviceID: string;
+  name: string;
   model: string;
   hardware: string;
   alias: string;
+  presence: string;
   managed: boolean;
   volume: number;
   play_mode: string;
   playlist_id: number;
   current_song_index: number;
   last_selected_at: string;
-  online: boolean;
 }
 
 // ===== 服务实现 =====
@@ -350,18 +350,18 @@ export class MinaService {
   private buildDeviceInfoFromLocal(accountId: string): DeviceInfo[] {
     const devices = this.configManager.getDevices(accountId);
     return devices.map(dev => ({
-      device_id: dev.device_id,
-      device_name: dev.device_name,
+      deviceID: dev.device_id,
+      name: dev.device_name,
       model: dev.model,
       hardware: dev.hardware,
       alias: dev.alias,
+      presence: 'offline', // 无法获取在线状态时默认 offline
       managed: dev.managed,
       volume: dev.volume,
       play_mode: dev.play_mode,
       playlist_id: dev.playlist_id,
       current_song_index: dev.current_song_index,
       last_selected_at: dev.last_selected_at,
-      online: false, // 无法获取在线状态时默认 false
     }));
   }
 
@@ -380,18 +380,18 @@ export class MinaService {
     return apiDevices.map(apiDev => {
       const local = localMap.get(apiDev.deviceID);
       return {
-        device_id: apiDev.deviceID,
-        device_name: apiDev.name,
+        deviceID: apiDev.deviceID,
+        name: apiDev.name,
         model: apiDev.model || '',
         hardware: apiDev.hardware || '',
         alias: apiDev.alias || '',
+        presence: apiDev.presence || 'offline',
         managed: local?.managed ?? false,
         volume: local?.volume ?? 0,
         play_mode: local?.play_mode ?? 'order',
         playlist_id: local?.playlist_id ?? 0,
         current_song_index: local?.current_song_index ?? 0,
         last_selected_at: local?.last_selected_at ?? '',
-        online: apiDev.presence === 'online',
       };
     });
   }

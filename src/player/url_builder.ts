@@ -1,7 +1,7 @@
 // 小米音箱插件 - URL构造器
 // 翻译自 Go 源码: plugins/mimusic-plugin-xiaomi/player/url_builder.go
 
-import { getHostBaseUrl, getPluginToken } from '../utils/http';
+import { getHostBaseUrl } from '../utils/http';
 
 // Base62 字符集
 const BASE62_CHARS = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
@@ -108,7 +108,7 @@ export class URLBuilder {
     type?: string;
   }): string {
     const serverHost = getHostBaseUrl();
-    const accessToken = getPluginToken();
+    const accessToken = mimusic.plugin.getToken();
 
     if (song.type === 'local' && song.file_path) {
       // 本地歌曲：使用 Base62 编码路径
@@ -138,7 +138,7 @@ export class URLBuilder {
     }
 
     const serverHost = getHostBaseUrl();
-    const accessToken = getPluginToken();
+    const accessToken = mimusic.plugin.getToken();
     const pathWithoutExt = getPathWithoutExtension(coverPath);
     const ext = getExtension(coverPath);
     const encodedPath = encodeBase62(pathWithoutExt);

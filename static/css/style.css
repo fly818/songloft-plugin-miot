@@ -120,6 +120,8 @@ body {
     background: var(--md-surface);
     z-index: 99;
     border-top: 1px solid var(--md-outline-variant);
+    padding-bottom: env(safe-area-inset-bottom);
+    box-sizing: content-box;
 }
 
 .tab-item {
@@ -780,7 +782,7 @@ body {
 /* Player Bar - 固定底部播放控制栏 */
 .player-bar {
     position: fixed;
-    bottom: 64px;
+    bottom: calc(64px + env(safe-area-inset-bottom));
     left: 0;
     right: 0;
     background: var(--md-surface);

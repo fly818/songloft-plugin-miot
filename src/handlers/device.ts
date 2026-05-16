@@ -55,6 +55,7 @@ export function registerDeviceHandlers(
         account_id: acc.id,
         account_name: acc.account,
         devices: minaService.getDevices(acc.id),
+        last_selected_device_id: accountManager.getLastSelectedDevice(acc.id) || '',
       }));
       return jsonResponse({ success: true, data: result });
     } catch (e: any) {

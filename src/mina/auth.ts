@@ -3,7 +3,7 @@
 // 实现小米3步登录流程：serviceLogin → serviceLoginAuth2 → 重定向获取 serviceToken
 
 import { CookieJar } from '../utils/cookie';
-import { fetchWithRedirects } from '../utils/http';
+import { fetchWithRedirects, fetchSync } from '../utils/http';
 import { md5, generateDeviceId } from '../utils/crypto';
 import {
   ACCOUNT_BASE_URL,
@@ -139,32 +139,22 @@ export class MinaAuth {
       headers['Cookie'] = cookieHeader;
     }
 
-    const response = (fetch as any)(captchaUrl, {
+    const response = fetchSync(captchaUrl, {
       method: 'GET',
       headers,
-      redirect: 'manual',
     });
 
     // 收集 cookies
-    const setCookies = getSetCookieHeaders(response);
-    if (setCookies.length > 0) {
-      this.cookieJar.addFromHeaders(setCookies, captchaUrl);
+    const setCookieHeaders = response.headers.getSetCookie();
+    if (setCookieHeaders.length > 0) {
+      this.cookieJar.addFromHeaders(setCookieHeaders, captchaUrl);
     }
 
     // 获取 ick cookie
     const ick = this.cookieJar.getValue('ick') || '';
 
-    // 在 QuickJS 中读取 body 作为 base64
-    // fetch 返回的 response 需要用 arrayBuffer() 或 text() 读取
-    let imageBase64 = '';
-    try {
-      // 尝试用 arrayBuffer → base64 转换
-      const buffer = response.arrayBuffer();
-      imageBase64 = arrayBufferToBase64(buffer);
-    } catch {
-      // fallback: 如果 arrayBuffer 不可用，尝试用 text
-      imageBase64 = response.text() || '';
-    }
+    // 在 QuickJS 中 body 已经是字符串（可能是 base64 或二进制字符串）
+    const imageBase64 = response.text() || '';
 
     this.captchaIck = ick;
     return { imageBase64, ick };
@@ -264,7 +254,6 @@ export class MinaAuth {
       sid: getStringValue(auth, 'sid', sid),
       qs: getStringValue(auth, 'qs', ''),
       _sign: getStringValue(auth, '_sign', ''),
-      _json: 'true',
     };
 
     // 如果有验证码
@@ -347,11 +336,13 @@ export class MinaAuth {
 
     // 保存认证信息到 cookie jar（通过 cookieJar 已自动完成）
     const ssecurity = getStringValue(result, 'ssecurity', '');
-    const nonce = getStringValue(result, 'nonce', '');
+    // 从原始 JSON 字符串提取 nonce，避免 JSON.parse 大整数精度丢失
+    const nonce = extractBigIntField(jsonStr, 'nonce') || getStringValue(result, 'nonce', '');
     const userId = getStringValue(result, 'userId', '');
 
     // 计算 clientSign
     const clientSign = computeClientSign(nonce, ssecurity);
+    console.log(`[loginStep2] nonce=${nonce}, ssecurity=${ssecurity}, clientSign=${clientSign}`);
     const locationWithSign = location + '&clientSign=' + encodeURIComponent(clientSign);
 
     // Step 3: 获取 serviceToken
@@ -371,6 +362,7 @@ export class MinaAuth {
   /**
    * Step3: 跟随重定向获取 serviceToken
    * 访问 location URL，自动跟随重定向，从 Cookie 中收集 serviceToken
+   * 携带登录过程中积累的 cookies（deviceId、sdkVersion 等），与 WASM 版本保持一致
    */
   private loginStep3(location: string, sid: string, ssecurityFromStep2 = ''): string | null {
     const headers: Record<string, string> = {
@@ -378,16 +370,17 @@ export class MinaAuth {
       'Content-Type': 'application/x-www-form-urlencoded',
     };
 
-    const cookieHeader = this.cookieJar.getCookieHeader(location);
-    if (cookieHeader) {
-      headers['Cookie'] = cookieHeader;
-    }
+    console.log(`[loginStep3] STS request URL: ${location}`);
+    console.log(`[loginStep3] STS request headers: ${JSON.stringify(headers)}`);
 
-    // 使用 fetchWithRedirects 跟随所有重定向，收集 Cookie
-    const { response } = fetchWithRedirects(location, {
+    // 使用 fetchWithRedirects 自动跟随重定向链并携带 cookieJar 中的 cookies
+    // 这与 WASM 版本的行为一致（WASM 版使用 autoRedirectClient + 全部 cookies）
+    const { response: finalResponse } = fetchWithRedirects(location, {
       method: 'GET',
       headers,
     }, this.cookieJar, MAX_REDIRECTS) as any;
+
+    console.log(`[loginStep3] STS response status: ${finalResponse.status}`);
 
     // 从 cookieJar 中提取需要的值
     const serviceToken = this.cookieJar.getValue('serviceToken') || '';
@@ -396,8 +389,8 @@ export class MinaAuth {
 
     if (!serviceToken) {
       let bodyText = '';
-      try { bodyText = response.text(); } catch { /* ignore */ }
-      return `failed to get serviceToken, status: ${response.status}, body: ${bodyText.slice(0, 200)}`;
+      try { bodyText = finalResponse.text(); } catch { /* ignore */ }
+      return `failed to get serviceToken, status: ${finalResponse.status}, body: ${bodyText.slice(0, 200)}`;
     }
 
     // 保存到 tokenInfo
@@ -474,9 +467,10 @@ export class MinaAuth {
       this.tokenInfo.user_id = newUserId;
     }
 
-    // 计算 clientSign 附加到 location URL
-    const nonce = getStringValue(loginData, 'nonce', '');
+    // 从原始 JSON 字符串提取 nonce，避免 JSON.parse 大整数精度丢失
+    const nonce = extractBigIntField(jsonStr, 'nonce') || getStringValue(loginData, 'nonce', '');
     const clientSign = computeClientSign(nonce, ssecurity);
+    console.log(`[exchangeServiceToken] nonce=${nonce}, ssecurity=${ssecurity}, clientSign=${clientSign}`);
     const locationWithSign = location + '&clientSign=' + encodeURIComponent(clientSign);
 
     // Step 3: 访问 location URL 获取 serviceToken
@@ -598,6 +592,17 @@ function stripJsonPrefix(body: string): string {
 }
 
 /**
+ * 从原始 JSON 字符串中用正则提取大整数字段值（作为字符串）
+ * 解决 JavaScript Number 精度限制（最大 2^53）导致 JSON.parse() 丢失大整数精度的问题
+ * 例如 nonce: 1610098522385872896 会被 JSON.parse 四舍五入为 1610098522385873000
+ */
+function extractBigIntField(jsonStr: string, field: string): string {
+  const regex = new RegExp('"' + field + '"\\s*:\\s*(\\d+)');
+  const match = jsonStr.match(regex);
+  return match ? match[1] : '';
+}
+
+/**
  * 从 map 中获取字符串值（兼容数字类型的 userId 等）
  */
 function getStringValue(obj: Record<string, unknown>, key: string, defaultValue: string): string {
@@ -655,9 +660,13 @@ function sha1(message: string): Uint8Array {
     msgBytes.push(0);
   }
   // Append original length in bits as 64-bit big-endian
-  for (let i = 56; i >= 0; i -= 8) {
-    msgBytes.push((bitLen >>> i) & 0xff);
-  }
+  // Note: JavaScript >>> operates on 32-bit integers and reduces shift by mod 32,
+  // so we must explicitly write high 32 bits as 0 (message length always < 2^32 bits)
+  msgBytes.push(0, 0, 0, 0); // high 32 bits (always 0 for our use case)
+  msgBytes.push((bitLen >>> 24) & 0xff);
+  msgBytes.push((bitLen >>> 16) & 0xff);
+  msgBytes.push((bitLen >>> 8) & 0xff);
+  msgBytes.push(bitLen & 0xff);
 
   // Initialize hash values
   let h0 = 0x67452301;
@@ -754,3 +763,4 @@ function getSetCookieHeaders(response: Response): string[] {
   const raw = response.headers.get('set-cookie');
   return raw ? [raw] : [];
 }
+

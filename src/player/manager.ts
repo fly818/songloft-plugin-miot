@@ -7,7 +7,7 @@
 import { ConfigManager } from '../config/manager';
 import { MinaService } from '../service/service';
 import { URLBuilder } from './url_builder';
-import { callHostAPI, getHostBaseUrl, getPluginToken } from '../utils/http';
+import { getHostBaseUrl } from '../utils/http';
 import type { PlayState, PlayMode, PlayerStatus } from '../types';
 
 // ===== 歌曲类型 =====
@@ -292,56 +292,17 @@ export class PlaylistManager {
   // ===== 私有方法 =====
 
   /**
-   * 加载歌单歌曲（通过宿主API）
+   * 加载歌单歌曲（通过宿主API桥接）
    */
   private loadPlaylistSongs(playlistId: number): boolean {
     try {
-      // 注意：callHostAPI 是 async 的，但在 QuickJS 同步上下文中
-      // 这里需要使用同步方式调用。由于 QuickJS 插件运行时的限制，
-      // 我们使用 callHostAPI 并依赖运行时的 pending job 机制
-      // 实际上在 JS 插件中这个方法会被异步调用
-      const path = '/api/v1/playlists/' + playlistId + '/songs?limit=100000';
-
-      // 使用同步版本的host API调用
-      // 在QuickJS环境中，fetch是通过host function实现的，实际上是同步的
-      const hostBaseUrl = getHostBaseUrl();
-      const pluginToken = getPluginToken();
-
-      if (!hostBaseUrl || !pluginToken) {
-        mimusic.log.error('[PlaylistManager] Host URL or token not configured');
+      // 使用 mimusic.playlists.getSongs 桥接调用（与 Go WASM 版本的 hostFunctions.CallRouter 等价）
+      // 这样不需要 hostBaseUrl 和 pluginToken，直接通过内部桥接访问数据库
+      const songs = mimusic.playlists.getSongs(playlistId, { limit: 100000 });
+      if (!songs || !Array.isArray(songs)) {
+        mimusic.log.error('[PlaylistManager] Bridge returned invalid songs data for playlist: ' + playlistId);
         return false;
       }
-
-      const url = hostBaseUrl + path;
-      const response = (globalThis as any).__mimusic_fetch_sync?.(url, {
-        method: 'GET',
-        headers: {
-          'Authorization': 'Bearer ' + pluginToken,
-          'Accept': 'application/json',
-        },
-      });
-
-      // 如果同步fetch不可用，回退到使用 mimusic.callRouter（如果可用）
-      if (!response) {
-        // 尝试使用 mimusic.callRouter（宿主提供的同步路由调用）
-        if (typeof (mimusic as any).callRouter === 'function') {
-          const routerResp = (mimusic as any).callRouter('GET', path);
-          if (routerResp && routerResp.success !== false) {
-            const body = typeof routerResp.body === 'string'
-              ? JSON.parse(routerResp.body)
-              : routerResp.body || routerResp;
-            const songs = body.songs || body.data?.songs || [];
-            this.songs = songs;
-            this.totalSongs = songs.length;
-            return songs.length > 0;
-          }
-        }
-        mimusic.log.error('[PlaylistManager] No sync fetch mechanism available');
-        return false;
-      }
-
-      const data = typeof response === 'string' ? JSON.parse(response) : response;
-      const songs = data.songs || data.data?.songs || [];
       this.songs = songs;
       this.totalSongs = songs.length;
       return songs.length > 0;
@@ -655,42 +616,15 @@ export class PlaylistManagerMap {
         return;
       }
 
-      // 从宿主API加载歌单歌曲
-      const hostBaseUrl = getHostBaseUrl();
-      const pluginToken = getPluginToken();
-      if (!hostBaseUrl || !pluginToken) {
-        return;
-      }
-
-      const path = '/api/v1/playlists/' + devCfg.playlist_id + '/songs?limit=100000';
-
+      // 使用 mimusic.playlists.getSongs 桥接调用加载歌单歌曲
       let songs: Song[] = [];
-
-      // 尝试通过 mimusic.callRouter 加载
-      if (typeof (mimusic as any).callRouter === 'function') {
-        const routerResp = (mimusic as any).callRouter('GET', path);
-        if (routerResp && routerResp.success !== false) {
-          const body = typeof routerResp.body === 'string'
-            ? JSON.parse(routerResp.body)
-            : routerResp.body || routerResp;
-          songs = body.songs || body.data?.songs || [];
+      try {
+        const result = mimusic.playlists.getSongs(devCfg.playlist_id, { limit: 100000 });
+        if (result && Array.isArray(result)) {
+          songs = result;
         }
-      }
-
-      if (songs.length === 0) {
-        // 尝试同步fetch
-        const url = hostBaseUrl + path;
-        const response = (globalThis as any).__mimusic_fetch_sync?.(url, {
-          method: 'GET',
-          headers: {
-            'Authorization': 'Bearer ' + pluginToken,
-            'Accept': 'application/json',
-          },
-        });
-        if (response) {
-          const data = typeof response === 'string' ? JSON.parse(response) : response;
-          songs = data.songs || data.data?.songs || [];
-        }
+      } catch (e) {
+        mimusic.log.warn('[PlaylistManagerMap] Failed to load songs via bridge: ' + String(e));
       }
 
       if (songs.length > 0) {

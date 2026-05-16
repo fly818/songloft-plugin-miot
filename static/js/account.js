@@ -153,7 +153,7 @@ function renderAccountItem(account) {
         <div class="account-card">
             <div class="account-header">
                 <div class="account-info">
-                    <span class="account-name">${escapeHtml(account.id)}</span>
+                    <span class="account-name">${escapeHtml(account.account_name || account.name || account.id)}</span>
                     <span class="chip ${statusClass}">
                         <span class="material-symbols-outlined">${statusIcon}</span>
                         ${statusText}

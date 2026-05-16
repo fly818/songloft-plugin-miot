@@ -166,7 +166,7 @@ export function startQRCodeLogin() {
                 }
 
                 // 开始轮询
-                pollQRCodeStatus(data.session_id);
+                pollQRCodeStatus(data.account_id);
             } else {
                 showSnackbar('获取二维码失败：' + (data.message || data.error || '未知错误'), 'error');
             }
@@ -190,11 +190,23 @@ export function pollQRCodeStatus(pollSessionId) {
     function pollOnce() {
         if (qrcodeLoginDone) return;
 
-        apiPost('/auth/qrcode/poll', { session_id: pollSessionId })
+        apiPost('/auth/qrcode/poll', { account_id: pollSessionId })
             .then(data => {
                 if (qrcodeLoginDone) return; // 已成功，忽略后续响应
 
                 const qrcodeStatus = document.getElementById('qrcodeStatus');
+
+                // 防御性检查：如果后端返回 success: false（通常是异常被捕获），
+                // 不应进入 default 分支继续轮询，而是作为错误处理
+                if (data.success === false) {
+                    stopQRCodePolling();
+                    if (qrcodeStatus) {
+                        qrcodeStatus.textContent = '扫码失败：' + (data.error || data.message || '未知错误');
+                        qrcodeStatus.style.color = 'var(--md-error)';
+                    }
+                    showSnackbar('扫码登录失败：' + (data.error || data.message || '未知错误'), 'error');
+                    return;
+                }
 
                 switch (data.state) {
                     case 'success':

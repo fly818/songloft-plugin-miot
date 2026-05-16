@@ -123,7 +123,12 @@ export function registerAuthHandlers(
       if (!result) {
         return jsonResponse({ success: false, error: 'failed to get QR code' });
       }
-      return jsonResponse({ success: true, account_id: accountId, ...result });
+      return jsonResponse({
+        success: true,
+        account_id: accountId,
+        qrcode_url: result.qrcodeUrl,
+        login_url: result.loginUrl,
+      });
     } catch (e: any) {
       return jsonResponse({ success: false, error: e.message || String(e) });
     }
@@ -138,7 +143,19 @@ export function registerAuthHandlers(
         return jsonResponse({ success: false, error: 'account_id is required' });
       }
       const result = authService.pollQRCode(account_id);
-      return jsonResponse({ success: true, ...result });
+      // 将内部状态映射为前端期望的状态名
+      const stateMap: Record<string, string> = {
+        'confirmed': 'success',
+        'failed': 'error',
+      };
+      const frontendState = stateMap[result.state] || result.state;
+      // 不将 tokenInfo 返回给前端（包含敏感信息，且前端不需要）
+      // 扫码成功时返回实际的 account_id（userId），前端需要用它替换临时 ID
+      const resp: Record<string, any> = { success: true, state: frontendState, message: result.message };
+      if (result.account_id) {
+        resp.account_id = result.account_id;
+      }
+      return jsonResponse(resp);
     } catch (e: any) {
       return jsonResponse({ success: false, error: e.message || String(e) });
     }

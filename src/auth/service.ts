@@ -16,7 +16,7 @@ import {
   LoginState,
 } from '../mina/constants';
 import type { LoginStateType } from '../mina/constants';
-import type { XiaomiTokenInfo, LoginResult, LoginState as LoginStateEnum } from '../types';
+import type { XiaomiTokenInfo, LoginResult } from '../types';
 
 /** 同一账号重登录最小间隔（毫秒） */
 const RELOGIN_MIN_INTERVAL_MS = 60 * 1000;
@@ -228,21 +228,42 @@ export class AuthService {
     if (result.state === 'confirmed' && result.tokenInfo) {
       this.qrLogins.delete(accountId);
 
-      // 使用 userId 作为 accountId
+      // 关键步骤：用真实 userId 作为账号 ID（与 Go 版 completeQRCodeLogin 一致）
       const effectiveAccountId = result.tokenInfo.user_id || accountId;
-      this.ensureAccountExists(effectiveAccountId, effectiveAccountId);
 
-      // 创建 MinaHTTPClient 并保存
+      // 如果 effectiveAccountId 与原始 accountId 不同，需要清理旧的临时账号
+      // 否则旧账号会残留在 storage 中，导致 relogin/设备查询用错误的 ID
+      if (effectiveAccountId !== accountId) {
+        try {
+          this.accountManager.deleteAccount(accountId);
+          console.log(`[auth] pollQRCode: cleaned up temporary account: ${accountId}`);
+        } catch {
+          // 旧账号可能不存在（首次登录），忽略
+        }
+      }
+
+      this.ensureAccountExists(effectiveAccountId, effectiveAccountId);
       this.setupMinaClient(effectiveAccountId, result.tokenInfo);
 
-      // 保存登录方式
-      this.configManager.updateAccount(effectiveAccountId, {
-        user_id: result.tokenInfo.user_id,
-        login_method: 'qrcode',
-      });
+      // 将实际的 account_id 写入 result，供 handler 返回给前端
+      result.account_id = effectiveAccountId;
 
-      // 保存 token 信息
-      this.saveTokenInfo(effectiveAccountId, result.tokenInfo);
+      // 非关键的持久化和定时器操作，失败不影响登录状态
+      try {
+        // 保存登录方式
+        this.configManager.updateAccount(effectiveAccountId, {
+          user_id: result.tokenInfo.user_id,
+          login_method: 'qrcode',
+        });
+
+        // 保存 token 信息
+        this.saveTokenInfo(effectiveAccountId, result.tokenInfo);
+
+        // 启动 Token 刷新定时器
+        this.startTokenRefresh(effectiveAccountId);
+      } catch (e: any) {
+        console.log(`[auth] pollQRCode: post-processing error (non-critical): ${e.message || e}`);
+      }
     }
 
     // 终态时清理 QRCodeLogin
@@ -256,31 +277,36 @@ export class AuthService {
   // ===== 认证状态 =====
 
   /**
-   * 获取账号认证状态
+   * 获取账号认证状态（返回与 Go 后端 AuthStatusResponse 一致的格式）
    */
-  getAuthStatus(accountId: string): { state: LoginStateEnum; message: string; account_id: string } {
+  getAuthStatus(accountId: string): { id: string; logged_in: boolean; is_valid: boolean; user_id: string; login_method: string; account_name: string } {
     const account = this.configManager.getAccount(accountId);
     if (!account) {
-      return { state: 'idle', message: '账号不存在', account_id: accountId };
+      return { id: accountId, logged_in: false, is_valid: false, user_id: '', login_method: '', account_name: '' };
     }
 
     const client = this.accountManager.getMinaClient(accountId);
     if (!client) {
-      return { state: 'idle', message: '未登录', account_id: accountId };
+      return { id: accountId, logged_in: false, is_valid: false, user_id: account.user_id || '', login_method: account.login_method || '', account_name: account.account || account.user_id || '' };
     }
 
     const minaClient = client as MinaHTTPClient;
-    if (!minaClient.isTokenValid()) {
-      return { state: 'failed', message: 'Token 已过期', account_id: accountId };
-    }
+    const isValid = minaClient.isTokenValid();
 
-    return { state: 'success', message: '已登录', account_id: accountId };
+    return {
+      id: accountId,
+      logged_in: true,
+      is_valid: isValid,
+      user_id: account.user_id || '',
+      login_method: account.login_method || '',
+      account_name: account.account || account.user_id || '',
+    };
   }
 
   /**
    * 获取所有账号的认证状态
    */
-  getAllAuthStatus(): Array<{ state: LoginStateEnum; message: string; account_id: string }> {
+  getAllAuthStatus(): Array<{ id: string; logged_in: boolean; is_valid: boolean; user_id: string; login_method: string; account_name: string }> {
     const accounts = this.configManager.getAccounts();
     return accounts.map(acc => this.getAuthStatus(acc.id));
   }
@@ -764,7 +790,7 @@ export class AuthService {
     const existing = this.configManager.getAccount(accountId);
     if (!existing) {
       try {
-        this.accountManager.createAccount(username, 'password');
+        this.accountManager.createAccount(accountId, username, 'password');
       } catch {
         // 已存在则忽略
       }

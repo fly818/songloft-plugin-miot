@@ -9,13 +9,6 @@ import type {
 } from '../types';
 import { ConfigManager } from '../config/manager';
 
-/** 生成唯一ID: 时间戳base36 + 4位随机hex */
-function generateId(): string {
-  const timePart = Date.now().toString(36);
-  const randPart = Math.floor(Math.random() * 0xffff).toString(16).padStart(4, '0');
-  return timePart + randPart;
-}
-
 /**
  * 账号管理器
  * 管理多个小米账号的创建、删除、登录状态和设备列表
@@ -33,18 +26,35 @@ export class AccountManager {
   // ===== 账号生命周期 =====
 
   /**
-   * 创建新账号
-   * @param account - 小米账号名（用户名/邮箱/手机）
-   * @param authType - 认证类型 "password" | "token" | "qrcode"
+   * 创建新账号（与 Go 版本 CreateAccount(id, name) 一致，由调用方指定 ID）
+   * 支持两种调用方式：
+   * - 3参数: createAccount(id, account, authType) — AuthService 使用
+   * - 2参数: createAccount(account, authType) — Handler 使用，account 同时作为 id
    * @returns 新创建的 AccountConfig
    */
-  createAccount(account: string, authType: string): AccountConfig {
+  createAccount(idOrAccount: string, accountOrAuthType: string, authType?: string): AccountConfig {
+    let id: string;
+    let account: string;
+    let finalAuthType: string;
+
+    if (authType !== undefined) {
+      // 3-arg call: createAccount(id, account, authType)
+      id = idOrAccount;
+      account = accountOrAuthType;
+      finalAuthType = authType;
+    } else {
+      // 2-arg call: createAccount(account, authType) — handler pattern
+      id = idOrAccount;
+      account = idOrAccount;
+      finalAuthType = accountOrAuthType;
+    }
+
     const now = new Date().toISOString();
     const newAccount: AccountConfig = {
-      id: generateId(),
+      id,
       account,
-      auth_type: authType,
-      login_method: authType,
+      auth_type: finalAuthType,
+      login_method: finalAuthType,
       password: '',
       pass_token: '',
       user_id: '',

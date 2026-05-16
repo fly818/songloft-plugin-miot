@@ -1,9 +1,12 @@
 // 小米音箱插件 - HTTP工具
-// 基于 QuickJS 全局 fetch API，提供手动重定向跟踪和宿主API调用
+// 基于 QuickJS __go_fetch_sync 桥接函数，提供同步 HTTP 请求和重定向跟踪
 
 /// <reference types="@mimusic/plugin-sdk" />
 
 import { CookieJar, parseCookies } from './cookie';
+
+// 声明 QuickJS 运行时注入的同步 HTTP 桥接函数
+declare function __go_fetch_sync(url: string, method: string, headersJSON: string, body: string): string;
 
 /** fetch请求选项（扩展） */
 export interface FetchOptions {
@@ -13,15 +16,73 @@ export interface FetchOptions {
   redirect?: 'follow' | 'manual';
 }
 
+/** 同步响应头包装器（支持 case-insensitive get） */
+class SyncHeaders {
+  private _raw: Record<string, string>;
+  constructor(raw: Record<string, string>) {
+    this._raw = raw || {};
+  }
+  get(name: string): string | null {
+    // 先精确匹配
+    if (this._raw[name] !== undefined) return this._raw[name];
+    // case-insensitive 匹配
+    const lower = name.toLowerCase();
+    for (const key of Object.keys(this._raw)) {
+      if (key.toLowerCase() === lower) return this._raw[key];
+    }
+    return null;
+  }
+  getSetCookie(): string[] {
+    const raw = this.get('set-cookie');
+    return raw ? [raw] : [];
+  }
+}
+
+/** 同步 Response 对象（模拟 Fetch API，但所有方法同步返回） */
+export interface SyncResponse {
+  ok: boolean;
+  status: number;
+  statusText: string;
+  headers: SyncHeaders;
+  text(): string;
+  json(): any;
+}
+
 /** 重定向跟踪结果 */
 export interface RedirectResult {
-  response: Response;
+  response: SyncResponse;
   finalUrl: string;
   redirectCount: number;
 }
 
 /**
- * 带Cookie跟踪的重定向请求
+ * 同步 HTTP 请求（直接调用 __go_fetch_sync 桥接）
+ * 绕过 fetch polyfill 的 Promise 包装，确保在 QuickJS 同步执行环境中可用
+ */
+export function fetchSync(url: string, options: { method?: string; headers?: Record<string, string>; body?: string } = {}): SyncResponse {
+  const method = (options.method || 'GET').toUpperCase();
+  const headersJSON = options.headers ? JSON.stringify(options.headers) : '{}';
+  const body = options.body || '';
+
+  const resultJSON = __go_fetch_sync(url, method, headersJSON, body);
+  const r = JSON.parse(resultJSON);
+
+  if (r.error) {
+    throw new Error(r.error);
+  }
+
+  return {
+    ok: r.status >= 200 && r.status < 300,
+    status: r.status,
+    statusText: r.statusText || '',
+    headers: new SyncHeaders(r.headers || {}),
+    text() { return r.body || ''; },
+    json() { return JSON.parse(r.body); },
+  };
+}
+
+/**
+ * 带Cookie跟踪的重定向请求（同步版）
  * 小米登录流程涉及多次3xx重定向，每步需要收集并回传Cookie
  *
  * @param url - 请求URL
@@ -30,12 +91,12 @@ export interface RedirectResult {
  * @param maxRedirects - 最大重定向次数（默认10）
  * @returns 最终响应和URL
  */
-export async function fetchWithRedirects(
+export function fetchWithRedirects(
   url: string,
   options: FetchOptions = {},
   cookieJar: CookieJar,
   maxRedirects = 10,
-): Promise<RedirectResult> {
+): RedirectResult {
   let currentUrl = url;
   let redirectCount = 0;
 
@@ -44,21 +105,21 @@ export async function fetchWithRedirects(
     const headers: Record<string, string> = { ...(options.headers || {}) };
     const cookieHeader = cookieJar.getCookieHeader(currentUrl);
     if (cookieHeader) {
-      headers['Cookie'] = cookieHeader;
+      // 合并 cookieJar 的 Cookie 与调用者显式设置的 Cookie（而非覆盖）
+      if (headers['Cookie']) {
+        headers['Cookie'] = headers['Cookie'] + '; ' + cookieHeader;
+      } else {
+        headers['Cookie'] = cookieHeader;
+      }
     }
 
-    const fetchInit: RequestInit = {
-      method: redirectCount === 0 ? (options.method || 'GET') : 'GET',
-      headers,
-      redirect: 'manual',
-    };
+    // 添加不跟随重定向标记，由 JS 侧手动处理重定向链以收集中间 Cookie
+    headers['X-Fetch-No-Redirect'] = '1';
 
-    // 只在第一次请求时携带body
-    if (redirectCount === 0 && options.body) {
-      fetchInit.body = options.body;
-    }
+    const method = redirectCount === 0 ? (options.method || 'GET') : 'GET';
+    const body = (redirectCount === 0 && options.body) ? options.body : undefined;
 
-    const response = await fetch(currentUrl, fetchInit);
+    const response = fetchSync(currentUrl, { method, headers, body });
 
     // 收集Set-Cookie响应头
     collectCookies(response, currentUrl, cookieJar);
@@ -88,21 +149,17 @@ export async function fetchWithRedirects(
 /**
  * 从Response中收集Set-Cookie头并添加到CookieJar
  */
-function collectCookies(response: Response, url: string, cookieJar: CookieJar): void {
-  // QuickJS的Headers可能不支持getSetCookie()，尝试多种方式
+function collectCookies(response: SyncResponse, url: string, cookieJar: CookieJar): void {
   const setCookieHeaders: string[] = [];
 
-  // 方式1：尝试 getSetCookie()（标准API）
-  if (typeof (response.headers as any).getSetCookie === 'function') {
-    const cookies = (response.headers as any).getSetCookie() as string[];
+  // 尝试 getSetCookie()
+  if (typeof response.headers.getSetCookie === 'function') {
+    const cookies = response.headers.getSetCookie();
     setCookieHeaders.push(...cookies);
-  }
-  // 方式2：尝试 get('set-cookie')，可能返回逗号分隔的多个值
-  else {
+  } else {
+    // 降级：尝试 get('set-cookie')
     const raw = response.headers.get('set-cookie');
     if (raw) {
-      // 简单按逗号分隔，但注意expires字段中也有逗号
-      // 使用更安全的分割方式：按 ", " + 非空白字符 + "=" 来分割
       setCookieHeaders.push(...splitSetCookieHeader(raw));
     }
   }
@@ -211,9 +268,9 @@ function resolveUrl(base: string, relative: string): string {
 }
 
 /**
- * 快速JSON请求（不跟踪Cookie）
+ * 快速JSON请求（不跟踪Cookie）- 同步版
  */
-export async function fetchJSON<T = unknown>(url: string, options: FetchOptions = {}): Promise<T> {
+export function fetchJSON<T = unknown>(url: string, options: FetchOptions = {}): T {
   const headers: Record<string, string> = {
     'Accept': 'application/json',
     ...(options.headers || {}),
@@ -223,40 +280,22 @@ export async function fetchJSON<T = unknown>(url: string, options: FetchOptions 
     headers['Content-Type'] = 'application/json';
   }
 
-  const response = await fetch(url, {
+  const response = fetchSync(url, {
     method: options.method || 'GET',
     headers,
     body: options.body,
   });
 
   if (!response.ok) {
-    const text = await response.text();
+    const text = response.text();
     throw new Error(`HTTP ${response.status}: ${text}`);
   }
 
-  const text = await response.text();
+  const text = response.text();
   return JSON.parse(text) as T;
 }
 
 // ===== 宿主API调用 =====
-
-/** pluginToken用于宿主API认证，初始化时设置 */
-let _pluginToken = '';
-
-/**
- * 设置宿主API的pluginToken
- * 应在onInit时调用
- */
-export function setPluginToken(token: string): void {
-  _pluginToken = token;
-}
-
-/**
- * 获取当前pluginToken
- */
-export function getPluginToken(): string {
-  return _pluginToken;
-}
 
 /**
  * 获取宿主API基础URL
@@ -277,27 +316,28 @@ export function setHostBaseUrl(url: string): void {
 }
 
 /**
- * 调用MiMusic宿主API
+ * 调用MiMusic宿主API（同步版）
  * @param method - HTTP方法
  * @param path - API路径（如 /api/v1/songs）
  * @param body - 请求体（将被JSON序列化）
  * @returns 解析后的JSON响应
  */
-export async function callHostAPI<T = unknown>(
+export function callHostAPI<T = unknown>(
   method: string,
   path: string,
   body?: unknown,
-): Promise<T> {
+): T {
   if (!_hostBaseUrl) {
     throw new Error('Host base URL not set. Call setHostBaseUrl() first.');
   }
-  if (!_pluginToken) {
-    throw new Error('Plugin token not set. Call setPluginToken() first.');
+  const pluginToken = mimusic.plugin.getToken();
+  if (!pluginToken) {
+    throw new Error('Plugin token not available from mimusic.plugin.getToken()');
   }
 
   const url = _hostBaseUrl + path;
   const headers: Record<string, string> = {
-    'Authorization': `Bearer ${_pluginToken}`,
+    'Authorization': `Bearer ${pluginToken}`,
     'Accept': 'application/json',
   };
 
@@ -307,13 +347,13 @@ export async function callHostAPI<T = unknown>(
     bodyStr = JSON.stringify(body);
   }
 
-  const response = await fetch(url, {
+  const response = fetchSync(url, {
     method,
     headers,
     body: bodyStr,
   });
 
-  const text = await response.text();
+  const text = response.text();
 
   if (!response.ok) {
     throw new Error(`Host API error ${response.status} ${method} ${path}: ${text}`);
