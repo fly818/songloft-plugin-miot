@@ -2,9 +2,9 @@
   "$schema": "https://raw.githubusercontent.com/mimusic-org/plugin-toolchain/main/schemas/plugin.schema.json",
   "name": "小米音箱",
   "version": "2026.5.16",
-  "description": "小米音箱播放歌曲",
-  "author": "hanxi",
-  "homepage": "",
+  "description": "小爱同学播放歌曲",
+  "author": "MiMusic Team",
+  "homepage": "https://github.com/mimusic-org/mimusic",
   "license": "Apache-2.0",
   "entryPath": "xiaomi",
   "main": "main.js",
@@ -18,7 +18,7 @@
     "inter-plugin",
     "command"
   ],
-  "updateUrl": "",
+  "updateUrl": "https://raw.githubusercontent.com/mimusic-org/jsplugins/main/xiaomi.json",
   "entryHash": "",
   "zipHash": ""
 }
