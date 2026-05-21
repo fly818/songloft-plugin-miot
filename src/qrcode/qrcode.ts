@@ -44,6 +44,8 @@ export interface PollResult {
   tokenInfo?: XiaomiTokenInfo;
   /** 成功时返回实际的账号 ID（userId），供前端更新本地引用 */
   account_id?: string;
+  /** 扫码登录返回的 passToken，用于后续 serviceToken 续期 */
+  passToken?: string;
 }
 
 // ===== QRCodeLogin 类 =====
@@ -291,6 +293,7 @@ export class QRCodeLogin {
         state: 'confirmed',
         message: 'QR code login successful',
         tokenInfo,
+        passToken,
       };
       return result;
     } catch (e: any) {

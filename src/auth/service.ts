@@ -250,11 +250,16 @@ export class AuthService {
 
       // 非关键的持久化和定时器操作，失败不影响登录状态
       try {
-        // 保存登录方式
-        this.configManager.updateAccount(effectiveAccountId, {
+        // 保存登录方式和 passToken（passToken 用于后续 serviceToken 续期，
+        // 不保存会导致 ~12 小时后 serviceToken 过期时无法刷新，账号掉线）
+        const updates: Record<string, any> = {
           user_id: result.tokenInfo.user_id,
           login_method: 'qrcode',
-        });
+        };
+        if (result.passToken) {
+          updates.pass_token = result.passToken;
+        }
+        this.configManager.updateAccount(effectiveAccountId, updates);
 
         // 保存 token 信息
         this.saveTokenInfo(effectiveAccountId, result.tokenInfo);
