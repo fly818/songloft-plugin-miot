@@ -1,4 +1,4 @@
-// 小米音箱插件 - 加密工具
+// MIoT 智能音箱插件 - 加密工具
 // 基于 QuickJS 全局 crypto 对象（由 polyfill 提供）
 
 /// <reference types="@mimusic/plugin-sdk" />

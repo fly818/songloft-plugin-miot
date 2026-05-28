@@ -1,4 +1,4 @@
-// 小米音箱插件 - 语音口令引擎
+// MIoT 智能音箱插件 - 语音口令引擎
 // 翻译自 Go 源码: plugins/mimusic-plugin-xiaomi/voicecmd/engine.go
 // 匹配用户语音指令并执行对应动作（播放歌单/歌曲、切歌、停止、音量、播放模式）
 

@@ -1,4 +1,4 @@
-// 小米音箱插件 - 对话监听器
+// MIoT 智能音箱插件 - 对话监听器
 // 翻译自 Go 源码: plugins/mimusic-plugin-xiaomi/conversation/monitor.go
 // 定时轮询设备对话记录，支持回调通知和 Webhook 推送
 

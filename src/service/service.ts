@@ -1,4 +1,4 @@
-// 小米音箱插件 - 设备控制服务
+// MIoT 智能音箱插件 - 设备控制服务
 // 翻译自 Go 源码: plugins/mimusic-plugin-xiaomi/service/service.go
 // 协调 AccountManager 和 MinaHTTPClient，提供设备管理与播放控制的高层封装
 

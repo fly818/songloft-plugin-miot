@@ -1,7 +1,7 @@
 {
   "name": "xiaomi",
   "version": "2026.5.26",
-  "description": "小米音箱播放歌曲",
+  "description": "通过 MIoT 协议把歌曲投放到智能音箱设备",
   "private": true,
   "scripts": {
     "build": "mimusic-plugin build",

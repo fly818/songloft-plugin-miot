@@ -38,7 +38,7 @@ let voiceEngine: VoiceEngine;
 let indexingManager: IndexingManager;
 
 async function onInit(): Promise<void> {
-  mimusic.log.info('小米音箱插件初始化...');
+  mimusic.log.info('MIoT 智能音箱插件初始化...');
 
   // 初始化管理器
   configManager = new ConfigManager();
@@ -109,16 +109,16 @@ async function onInit(): Promise<void> {
     voiceEngine.setEnabled(true);
   }
 
-  mimusic.log.info('小米音箱插件初始化完成');
+  mimusic.log.info('MIoT 智能音箱插件初始化完成');
 }
 
 async function onDeinit(): Promise<void> {
-  mimusic.log.info('小米音箱插件停止...');
+  mimusic.log.info('MIoT 智能音箱插件停止...');
   scheduler?.stop();
   conversationMonitor?.stop();
   playlistManagerMap?.cleanup();
   authService?.cleanup();
-  mimusic.log.info('小米音箱插件已停止');
+  mimusic.log.info('MIoT 智能音箱插件已停止');
 }
 
 async function onHTTPRequest(req: HTTPRequest): Promise<HTTPResponse> {

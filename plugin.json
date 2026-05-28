@@ -1,8 +1,8 @@
 {
   "$schema": "https://raw.githubusercontent.com/mimusic-org/plugin-toolchain/main/schemas/plugin.schema.json",
-  "name": "小米音箱",
+  "name": "MIoT 智能音箱",
   "version": "2026.5.26",
-  "description": "小爱同学播放歌曲",
+  "description": "通过 MIoT 协议把歌曲投放到智能音箱设备",
   "author": "MiMusic Team",
   "homepage": "https://github.com/mimusic-org/mimusic",
   "license": "Apache-2.0",

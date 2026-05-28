@@ -1,4 +1,4 @@
-// 小米音箱插件 - 定时任务执行器
+// MIoT 智能音箱插件 - 定时任务执行器
 // 翻译自 Go 源码: plugins/mimusic-plugin-xiaomi/schedule/executor.go
 // 解析目标设备，执行 play_playlist/play_playlist_from/stop/set_volume/set_play_mode 动作
 

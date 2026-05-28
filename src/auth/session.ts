@@ -1,4 +1,4 @@
-// 小米音箱插件 - 登录会话管理
+// MIoT 智能音箱插件 - 登录会话管理
 // 翻译自 Go 源码: plugins/mimusic-plugin-xiaomi/auth/session.go
 // 保存登录过程中的中间状态，用于多步骤登录流程中保持上下文
 

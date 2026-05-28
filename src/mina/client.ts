@@ -1,4 +1,4 @@
-// 小米音箱插件 - Mina HTTP 客户端
+// MIoT 智能音箱插件 - Mina HTTP 客户端
 // 翻译自 Go 源码: plugins/mimusic-plugin-xiaomi/pkg/mina/mina_client.go
 // 设备控制 API 客户端：设备列表、播放控制、音量、TTS、对话记录
 

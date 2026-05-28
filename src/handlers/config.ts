@@ -1,4 +1,4 @@
-// 小米音箱插件 - 配置 Handler
+// MIoT 智能音箱插件 - 配置 Handler
 // 翻译自 Go 源码: plugins/mimusic-plugin-xiaomi/handlers/config_handler.go
 
 import { jsonResponse } from '@mimusic/plugin-sdk';
@@ -130,9 +130,9 @@ export function registerConfigHandlers(
       // 检查保存后的地址是否有效，附带 warning
       let warning = '';
       if (!config.server_host) {
-        warning = '服务器地址为空，小米音箱将无法播放音乐。请配置局域网 IP 地址（如 http://192.168.x.x:58091）。';
+        warning = '服务器地址为空，MIoT 智能音箱将无法播放音乐。请配置局域网 IP 地址（如 http://192.168.x.x:58091）。';
       } else if (isLoopbackAddress(config.server_host)) {
-        warning = '检测到服务器地址为本地回环地址，小米音箱将无法通过此地址访问服务器播放音乐。请使用局域网 IP 地址。';
+        warning = '检测到服务器地址为本地回环地址，MIoT 智能音箱将无法通过此地址访问服务器播放音乐。请使用局域网 IP 地址。';
       }
 
       const resp: any = { success: true };

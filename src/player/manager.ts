@@ -1,4 +1,4 @@
-// 小米音箱插件 - 歌单播放管理器
+// MIoT 智能音箱插件 - 歌单播放管理器
 // 翻译自 Go 源码: plugins/mimusic-plugin-xiaomi/player/playlist_manager.go
 // 管理播放状态机、播放模式切换、自动切歌
 

@@ -1,4 +1,4 @@
-// 小米音箱插件 - 认证 Handler
+// MIoT 智能音箱插件 - 认证 Handler
 // 翻译自 Go 源码: plugins/mimusic-plugin-xiaomi/handlers/auth_handler.go
 
 import { jsonResponse, parseQuery } from '@mimusic/plugin-sdk';

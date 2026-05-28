@@ -1,4 +1,4 @@
-// 小米音箱插件 - HTTP 工具（真异步：基于 globalThis.fetch）
+// MIoT 智能音箱插件 - HTTP 工具（真异步：基于 globalThis.fetch）
 //
 // 提供两组工具：
 //  1. httpFetch / fetchJSON：常规 JSON 请求；

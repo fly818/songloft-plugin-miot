@@ -1,4 +1,4 @@
-// 小米音箱插件 - 对话监听 Handler
+// MIoT 智能音箱插件 - 对话监听 Handler
 // 翻译自 Go 源码: plugins/mimusic-plugin-xiaomi/handlers/conversation_handler.go
 
 import { jsonResponse, parseQuery } from '@mimusic/plugin-sdk';

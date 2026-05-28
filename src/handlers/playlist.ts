@@ -1,4 +1,4 @@
-// 小米音箱插件 - 歌单播放 Handler
+// MIoT 智能音箱插件 - 歌单播放 Handler
 // 翻译自 Go 源码: plugins/mimusic-plugin-xiaomi/handlers/playlist_handler.go
 
 import { jsonResponse, parseQuery } from '@mimusic/plugin-sdk';
@@ -64,7 +64,7 @@ export function registerPlaylistHandlers(
       }
       if (isLoopbackAddress(config.server_host)) {
         // 回环地址时返回空列表（附带提示信息），而不是 400 错误
-        return jsonResponse({ success: true, data: [], message: '服务器地址为本地回环地址（localhost/127.0.0.1），小米音箱无法访问。请在「设置」中修改为局域网 IP 地址。' });
+        return jsonResponse({ success: true, data: [], message: '服务器地址为本地回环地址（localhost/127.0.0.1），MIoT 智能音箱无法访问。请在「设置」中修改为局域网 IP 地址。' });
       }
       const playlists = await mimusic.playlists.list();
       return jsonResponse({ success: true, data: playlists });
@@ -109,7 +109,7 @@ export function registerPlaylistHandlers(
         return jsonResponse({ success: false, error: '未配置服务器地址，请先在「设置」中配置服务器地址。' });
       }
       if (isLoopbackAddress(config.server_host)) {
-        return jsonResponse({ success: false, error: '服务器地址为本地回环地址，小米音箱无法访问。请在「设置」中修改为局域网 IP 地址。' });
+        return jsonResponse({ success: false, error: '服务器地址为本地回环地址，MIoT 智能音箱无法访问。请在「设置」中修改为局域网 IP 地址。' });
       }
 
       const manager = await playlistManagerMap.getOrCreate(account_id, device_id);

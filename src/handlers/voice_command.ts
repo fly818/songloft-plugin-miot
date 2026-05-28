@@ -1,4 +1,4 @@
-// 小米音箱插件 - 语音口令 Handler
+// MIoT 智能音箱插件 - 语音口令 Handler
 // 翻译自 Go 源码: plugins/mimusic-plugin-xiaomi/handlers/voice_command_handler.go
 
 import { jsonResponse } from '@mimusic/plugin-sdk';

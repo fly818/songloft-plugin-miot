@@ -1,4 +1,4 @@
-// 小米音箱插件 - Cookie管理工具
+// MIoT 智能音箱插件 - Cookie管理工具
 // 轻量级 CookieJar 实现，用于小米登录流程中跨域名跟踪Cookie
 
 /** Cookie对象 */

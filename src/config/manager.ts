@@ -1,4 +1,4 @@
-// 小米音箱插件 - 配置管理器
+// MIoT 智能音箱插件 - 配置管理器
 // 基于 mimusic.storage API 实现配置持久化（异步桥接）
 
 /// <reference types="@mimusic/plugin-sdk" />

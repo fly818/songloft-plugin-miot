@@ -1,4 +1,4 @@
-// 小米音箱插件 - 定时任务调度器
+// MIoT 智能音箱插件 - 定时任务调度器
 // 翻译自 Go 源码: plugins/mimusic-plugin-xiaomi/schedule/scheduler.go
 // 实现 30s tick 循环，分钟级去重，weekly/monthly 调度匹配
 

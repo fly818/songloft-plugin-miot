@@ -124,10 +124,10 @@ function updateServerHostWarning(status) {
     if (!warningEl || !warningText) return;
 
     if (status === 'empty') {
-        warningText.textContent = '服务器地址为空，小米音箱将无法播放音乐。请配置局域网 IP 地址（如 http://192.168.x.x:58091）。';
+        warningText.textContent = '服务器地址为空，MIoT 智能音箱将无法播放音乐。请配置局域网 IP 地址（如 http://192.168.x.x:58091）。';
         warningEl.style.display = 'flex';
     } else if (status === 'loopback') {
-        warningText.textContent = '服务器地址为本地回环地址（localhost/127.0.0.1），小米音箱无法通过此地址访问服务器。请使用局域网 IP 地址（如 http://192.168.x.x:58091）。';
+        warningText.textContent = '服务器地址为本地回环地址（localhost/127.0.0.1），MIoT 智能音箱无法通过此地址访问服务器。请使用局域网 IP 地址（如 http://192.168.x.x:58091）。';
         warningEl.style.display = 'flex';
     } else {
         warningEl.style.display = 'none';

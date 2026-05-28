@@ -1,4 +1,4 @@
-// 小米音箱插件 - 账号管理 Handler
+// MIoT 智能音箱插件 - 账号管理 Handler
 // 翻译自 Go 源码: plugins/mimusic-plugin-xiaomi/handlers/account_handler.go
 
 import { jsonResponse, parseQuery } from '@mimusic/plugin-sdk';
