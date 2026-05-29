@@ -12,7 +12,7 @@ jobs:
   release:
     runs-on: ubuntu-latest
     permissions:
-      contents: write
+      contents: write   # release 自己仓库 + commit manifest 都用默认 GITHUB_TOKEN
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -31,10 +31,7 @@ jobs:
           if [ -n "${{ github.event.inputs.version }}" ]; then
             VERSION="${{ github.event.inputs.version }}"
           else
-            YEAR=$(date +'%Y')
-            MONTH=$(date +'%-m')
-            DAY=$(date +'%-d')
-            VERSION="${YEAR}.${MONTH}.${DAY}"
+            VERSION="$(date +'%Y.%-m.%-d')"
           fi
           echo "version=${VERSION}" >> $GITHUB_OUTPUT
           echo "Generated version: ${VERSION}"
@@ -50,15 +47,6 @@ jobs:
               fs.writeFileSync(f, JSON.stringify(p, null, 2) + '\n');
             }
           "
-          echo "Updated version to ${VERSION}"
-
-      - name: Commit version bump
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add plugin.json package.json
-          git diff --staged --quiet || git commit -m "chore: bump version to ${{ steps.version.outputs.version }}"
-          git push
 
       - name: Build
         run: npm run build
@@ -67,120 +55,46 @@ jobs:
         id: plugin_info
         run: |
           ENTRY_PATH=$(node -p "require('./plugin.json').entryPath")
-          NAME=$(node -p "require('./plugin.json').name")
-          DESC=$(node -p "require('./plugin.json').description")
-          AUTHOR=$(node -p "require('./plugin.json').author")
-          HOMEPAGE=$(node -p "require('./plugin.json').homepage || ''")
           ZIP_NAME="${ENTRY_PATH}.jsplugin.zip"
           echo "entryPath=${ENTRY_PATH}" >> $GITHUB_OUTPUT
-          echo "name=${NAME}" >> $GITHUB_OUTPUT
-          echo "desc=${DESC}" >> $GITHUB_OUTPUT
-          echo "author=${AUTHOR}" >> $GITHUB_OUTPUT
-          echo "homepage=${HOMEPAGE}" >> $GITHUB_OUTPUT
           echo "zip_name=${ZIP_NAME}" >> $GITHUB_OUTPUT
 
-      - name: Create GitHub Release
+      - name: Create GitHub Release on this repo
         id: create_release
         env:
-          GH_TOKEN: ${{ secrets.SONGLOFT_TOKEN_JS_MIOT }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           VERSION="${{ steps.version.outputs.version }}"
-          ENTRY_PATH="${{ steps.plugin_info.outputs.entryPath }}"
           ZIP_NAME="${{ steps.plugin_info.outputs.zip_name }}"
-          REPO="songloft-org/jsplugins"
-          TAG="jsplugin-${ENTRY_PATH}-${VERSION}"
+          TAG="v${VERSION}"
 
-          # 删除已存在的同名 Release（如果存在）
-          if gh release view "${TAG}" --repo "${REPO}" &>/dev/null; then
-            echo "Release ${TAG} already exists, deleting..."
-            gh release delete "${TAG}" --repo "${REPO}" --yes
+          # 删除已存在的同名 Release / Tag（重发版兼容）
+          if gh release view "${TAG}" &>/dev/null; then
+            gh release delete "${TAG}" --yes --cleanup-tag
           fi
 
-          # 创建新 Release 并上传文件
           gh release create "${TAG}" \
             "dist/${ZIP_NAME}" \
-            --repo "${REPO}" \
-            --title "JS Plugin ${ENTRY_PATH} ${VERSION}" \
-            --notes "自动构建的 JS 插件 ${ENTRY_PATH} 版本 ${VERSION}"
+            --title "v${VERSION}" \
+            --notes "自动构建的 JS 插件 v${VERSION}"
 
-          FILE_URL="https://github.com/${REPO}/releases/download/${TAG}/${ZIP_NAME}"
-          echo "file_url=${FILE_URL}" >> $GITHUB_OUTPUT
+          DOWNLOAD_URL="https://github.com/${GITHUB_REPOSITORY}/releases/download/${TAG}/${ZIP_NAME}"
+          echo "download_url=${DOWNLOAD_URL}" >> $GITHUB_OUTPUT
           echo "tag=${TAG}" >> $GITHUB_OUTPUT
 
-      - name: Push version JSON to jsplugins repo
+      - name: Commit version bump + manifest.json
         env:
-          GH_TOKEN: ${{ secrets.SONGLOFT_TOKEN_JS_MIOT }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           VERSION="${{ steps.version.outputs.version }}"
-          ENTRY_PATH="${{ steps.plugin_info.outputs.entryPath }}"
-          ZIP_NAME="${{ steps.plugin_info.outputs.zip_name }}"
-          TAG="jsplugin-${ENTRY_PATH}-${VERSION}"
-          REPO="songloft-org/jsplugins"
-          DOWNLOAD_URL="https://github.com/${REPO}/releases/download/${TAG}/${ZIP_NAME}"
-          JSON_PATH="${ENTRY_PATH}.json"
+          DOWNLOAD_URL="${{ steps.create_release.outputs.download_url }}"
 
-          ENCODED_CONTENT=$(jq -cn --arg v "$VERSION" --arg u "$DOWNLOAD_URL" \
-            '{version: $v, download_url: $u}' | base64 -w 0)
+          # manifest.json 是客户端拉的更新检查文件，updateUrl 指向它
+          jq -n --arg v "$VERSION" --arg u "$DOWNLOAD_URL" \
+            '{version: $v, download_url: $u}' > manifest.json
 
-          # 获取现有文件的 SHA（如果存在）
-          EXISTING_SHA=$(gh api "repos/${REPO}/contents/${JSON_PATH}" --jq '.sha' 2>/dev/null || echo "")
-
-          if [ -n "$EXISTING_SHA" ]; then
-            jq -cn --arg msg "chore: update ${JSON_PATH} to v${VERSION}" \
-              --arg content "$ENCODED_CONTENT" --arg sha "$EXISTING_SHA" \
-              '{message: $msg, content: $content, sha: $sha}' | \
-              gh api "repos/${REPO}/contents/${JSON_PATH}" --method PUT --input -
-          else
-            jq -cn --arg msg "chore: add ${JSON_PATH} v${VERSION}" \
-              --arg content "$ENCODED_CONTENT" \
-              '{message: $msg, content: $content}' | \
-              gh api "repos/${REPO}/contents/${JSON_PATH}" --method PUT --input -
-          fi
-          echo "Pushed ${JSON_PATH} to ${REPO}"
-
-      - name: Post comment to songloft issue
-        env:
-          GH_TOKEN: ${{ secrets.SONGLOFT_TOKEN_JS_MIOT }}
-        run: |
-          VERSION="${{ steps.version.outputs.version }}"
-          FILE_URL="${{ steps.create_release.outputs.file_url }}"
-          ZIP_NAME="${{ steps.plugin_info.outputs.zip_name }}"
-          NAME="${{ steps.plugin_info.outputs.name }}"
-          DESC="${{ steps.plugin_info.outputs.desc }}"
-          AUTHOR="${{ steps.plugin_info.outputs.author }}"
-          HOMEPAGE="${{ steps.plugin_info.outputs.homepage }}"
-          BUILD_TIME=$(date -u '+%Y-%m-%d %H:%M:%S UTC')
-
-          # 删除该 issue 下包含同名 zip 的旧评论
-          EXISTING_COMMENT_IDS=$(gh api \
-            repos/songloft-org/songloft/issues/4/comments \
-            --paginate \
-            --jq ".[] | select(.body | contains(\"${ZIP_NAME}\")) | .id")
-          for COMMENT_ID in $EXISTING_COMMENT_IDS; do
-            echo "Deleting old comment: ${COMMENT_ID}"
-            gh api --method DELETE repos/songloft-org/songloft/issues/comments/${COMMENT_ID}
-          done
-
-          COMMENT=$(cat <<EOF
-          ## JS 插件更新
-
-          ### 插件信息
-
-          - **名称**: ${NAME}
-          - **版本**: ${VERSION}
-          - **描述**: ${DESC}
-          - **作者**: ${AUTHOR}
-          - **主页**: ${HOMEPAGE}
-
-          ### 下载
-
-          - [${ZIP_NAME}](${FILE_URL})
-
-          ---
-          *自动提交于 ${BUILD_TIME}*
-          EOF
-          )
-
-          echo "$COMMENT" | gh issue comment 4 \
-            --repo songloft-org/songloft \
-            --body-file -
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add plugin.json package.json manifest.json
+          git diff --staged --quiet || git commit -m "chore(release): v${VERSION}"
+          git push

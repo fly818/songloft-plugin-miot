@@ -18,7 +18,7 @@
     "inter-plugin",
     "command"
   ],
-  "updateUrl": "https://raw.githubusercontent.com/songloft-org/jsplugins/main/miot.json",
+  "updateUrl": "https://raw.githubusercontent.com/songloft-org/songloft-plugin-miot/main/manifest.json",
   "entryHash": "",
   "zipHash": ""
 }
