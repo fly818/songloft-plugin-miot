@@ -36,6 +36,12 @@ const playModeLabels = {
 /** 星期映射 */
 const weekdayLabels = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
 
+/** 节假日模式映射 */
+const holidayModeLabels = {
+    'only_holiday': '仅节假日',
+    'exclude_holiday': '真·工作日',
+};
+
 /** 当前定时任务列表缓存 */
 let currentTasks = [];
 
@@ -222,7 +228,11 @@ function formatScheduleDesc(schedule) {
             dayStr = '每月' + schedule.monthdays.map(d => d + '号').join('、');
         }
     }
-    return dayStr + ' ' + (schedule.time || '');
+    let base = dayStr + ' ' + (schedule.time || '');
+    if (schedule.type === 'weekly' && schedule.holiday_mode && holidayModeLabels[schedule.holiday_mode]) {
+        base += ' · ' + holidayModeLabels[schedule.holiday_mode];
+    }
+    return base;
 }
 
 function formatParamDesc(action, params) {
@@ -360,6 +370,10 @@ function resetForm() {
     // 清空月日选择
     document.querySelectorAll('.monthday-checkbox').forEach(cb => cb.checked = false);
 
+    // 节假日模式默认 ignore
+    const hmEl = document.getElementById('scheduleHolidayMode');
+    if (hmEl) hmEl.value = 'ignore';
+
     // 清空参数
     const playlistSelect = document.getElementById('schedulePlaylistSelect');
     if (playlistSelect) playlistSelect.value = '';
@@ -394,6 +408,10 @@ function fillForm(task) {
         const day = parseInt(cb.value);
         cb.checked = task.schedule.monthdays && task.schedule.monthdays.includes(day);
     });
+
+    // 节假日模式回填
+    const hmEl = document.getElementById('scheduleHolidayMode');
+    if (hmEl) hmEl.value = task.schedule.holiday_mode || 'ignore';
 
     // 歌单选择（按名称匹配）
     const playlistSelect = document.getElementById('schedulePlaylistSelect');
@@ -651,6 +669,11 @@ function saveScheduleTask() {
         target.devices = devices;
     }
 
+    // 节假日模式(仅对 weekly 生效)
+    let holidayMode = 'ignore';
+    const hmEl = document.getElementById('scheduleHolidayMode');
+    if (hmEl && hmEl.value) holidayMode = hmEl.value;
+
     const taskData = {
         name: name,
         action: action,
@@ -659,6 +682,7 @@ function saveScheduleTask() {
             time: time,
             weekdays: scheduleType === 'weekly' ? weekdays : undefined,
             monthdays: scheduleType === 'monthly' ? monthdays : undefined,
+            holiday_mode: scheduleType === 'weekly' ? holidayMode : undefined,
         },
         target: target,
         params: params,

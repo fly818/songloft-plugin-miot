@@ -4,10 +4,13 @@
   "description": "通过 MIoT 协议把歌曲投放到智能音箱设备",
   "private": true,
   "scripts": {
+    "prebuild": "node scripts/fetch-holidays.mjs",
     "build": "songloft-plugin build",
+    "predev": "node scripts/fetch-holidays.mjs",
     "dev": "songloft-plugin dev",
     "validate": "songloft-plugin validate",
-    "publish:release": "songloft-plugin publish"
+    "publish:release": "songloft-plugin publish",
+    "fetch:holidays": "node scripts/fetch-holidays.mjs"
   },
   "devDependencies": {
     "@songloft/plugin-builder": "^2.0.0-alpha.1",

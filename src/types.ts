@@ -113,12 +113,19 @@ export interface ScheduledTask {
 /** 任务动作类型 */
 export type TaskAction = 'play_playlist' | 'play_playlist_from' | 'stop' | 'set_volume' | 'set_play_mode';
 
+/** 节假日感知模式(仅对 weekly 调度生效) */
+export type HolidayMode =
+  | 'ignore'           // 不感知节假日,完全按 weekdays 触发(默认,向后兼容)
+  | 'only_holiday'     // 仅在法定放假日触发,且 weekday 也必须勾选
+  | 'exclude_holiday'; // 跳过法定假,但调休补班日强制触发(无视 weekday)
+
 /** 任务调度规则 */
 export interface TaskSchedule {
   type: 'weekly' | 'monthly';
   time: string;            // "HH:MM"
   weekdays?: number[];     // 0=Sun, 1=Mon...6=Sat
   monthdays?: number[];    // 1-31
+  holiday_mode?: HolidayMode;
 }
 
 /** 目标设备标识（与 Go DeviceTarget 一致） */

@@ -7,6 +7,7 @@
 import { ConfigManager } from '../config/manager';
 import type { ScheduledTask, TaskSchedule, TaskLog } from '../types';
 import { TaskExecutor } from './executor';
+import { lookupHoliday } from '../utils/holiday';
 
 /** tick 间隔 30 秒 */
 const TICK_INTERVAL_MS = 30000;
@@ -125,7 +126,7 @@ export class Scheduler {
       if (task.schedule.time !== timeStr) {
         continue;
       }
-      if (!this.matchSchedule(task.schedule, weekday, monthday)) {
+      if (!this.matchSchedule(task.schedule, weekday, monthday, now)) {
         continue;
       }
 
@@ -144,10 +145,10 @@ export class Scheduler {
   /**
    * 判断当前时间是否匹配调度配置
    */
-  private matchSchedule(schedule: TaskSchedule, weekday: number, monthday: number): boolean {
+  private matchSchedule(schedule: TaskSchedule, weekday: number, monthday: number, now: Date): boolean {
     switch (schedule.type) {
       case 'weekly':
-        return this.matchWeekly(schedule, weekday);
+        return this.matchWeekly(schedule, weekday, now);
       case 'monthly':
         return this.matchMonthly(schedule, monthday);
       default:
@@ -157,13 +158,27 @@ export class Scheduler {
   }
 
   /**
-   * 匹配 weekly 调度：检查当前星期几是否在 weekdays 列表中
+   * 匹配 weekly 调度，含可选的节假日感知:
+   * - holiday_mode='ignore' (默认): 仅按 weekdays 判定
+   * - holiday_mode='only_holiday': 必须是法定放假日,且 weekday 在勾选范围
+   * - holiday_mode='exclude_holiday': 调休补班日强制触发(无视 weekday);
+   *   法定假日跳过;普通日按 weekdays 判定
    */
-  private matchWeekly(schedule: TaskSchedule, weekday: number): boolean {
-    if (!schedule.weekdays || schedule.weekdays.length === 0) {
-      return false;
+  private matchWeekly(schedule: TaskSchedule, weekday: number, now: Date): boolean {
+    const inWeekday = !!schedule.weekdays && schedule.weekdays.includes(weekday);
+    const mode = schedule.holiday_mode || 'ignore';
+    const holiday = mode === 'ignore' ? undefined : lookupHoliday(now);
+
+    if (mode === 'only_holiday') {
+      if (!holiday || !holiday.isOffDay) return false;
+      return inWeekday;
     }
-    return schedule.weekdays.includes(weekday);
+    if (mode === 'exclude_holiday') {
+      if (holiday && !holiday.isOffDay) return true;   // 补班日强制触发
+      if (holiday && holiday.isOffDay) return false;   // 法定假跳过
+      return inWeekday;                                 // 普通日按 weekday
+    }
+    return inWeekday;
   }
 
   /**

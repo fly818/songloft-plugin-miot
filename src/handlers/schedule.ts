@@ -39,6 +39,10 @@ function validateSchedule(schedule: TaskSchedule): string | null {
   } else {
     return '未知的调度类型: ' + schedule.type;
   }
+  if (schedule.holiday_mode !== undefined &&
+      !['ignore', 'only_holiday', 'exclude_holiday'].includes(schedule.holiday_mode)) {
+    return '无效的节假日模式: ' + schedule.holiday_mode;
+  }
   return null;
 }
 
