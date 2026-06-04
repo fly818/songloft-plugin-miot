@@ -47,7 +47,7 @@ interface RemoteSongItem {
   album: string;
   cover_url: string;
   duration: number;
-  url: string;               // 绝对 URL，lxmusic topOne 已返回
+  url: string;               // 绝对 URL，lxmusic topone 已返回
   plugin_entry_path: string; // 空字符串表示直接用 url 字段
   source_data: string;
   dedup_key: string;
@@ -172,21 +172,21 @@ export class OnlineSearcher {
       try {
         resp = JSON.parse(text) as SearchOneResponse;
       } catch {
-        songloft.log.warn('[OnlineSearcher] Failed to parse search/topOne response: ' + text);
+        songloft.log.warn('[OnlineSearcher] Failed to parse search/topone response: ' + text);
         return false;
       }
     } catch (e: any) {
       if (e.message === 'AbortError') {
-        songloft.log.warn('[OnlineSearcher] Search/topOne timeout (>6s) for keyword: ' + keyword);
+        songloft.log.warn('[OnlineSearcher] Search/topone timeout (>6s) for keyword: ' + keyword);
       } else {
-        songloft.log.warn('[OnlineSearcher] Search/topOne fetch error: ' + String(e));
+        songloft.log.warn('[OnlineSearcher] Search/topone fetch error: ' + String(e));
       }
       return false;
     }
 
     // 解析响应
     if (!resp || resp.code !== 0 || !resp.data) {
-      songloft.log.warn('[OnlineSearcher] Search/topOne returned code=' + (resp?.code ?? 'null') + ' for keyword: ' + keyword);
+      songloft.log.warn('[OnlineSearcher] Search/topone returned code=' + (resp?.code ?? 'null') + ' for keyword: ' + keyword);
       return false;
     }
 
@@ -244,7 +244,7 @@ export class OnlineSearcher {
       album: song.album || '',
       cover_url: song.cover_url || '',
       duration: song.duration || 0,
-      url: song.url || '',  // lxmusic topOne 已返回绝对 URL，后端直接代理
+      url: song.url || '',  // lxmusic topone 已返回绝对 URL，后端直接代理
       plugin_entry_path: '', // 空表示直接用 url 字段，不走插件回调
       source_data: sourceData,
       dedup_key: dedupKey,
