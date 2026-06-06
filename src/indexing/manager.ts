@@ -111,6 +111,8 @@ function similarity(a: string, b: string): number {
  * @returns 得分，0 表示不匹配
  */
 function fuzzyScore(keyword: string, candidate: string): number {
+  if (!keyword || !candidate) return 0;
+
   const keywordLower = keyword.toLowerCase();
   const candidateLower = candidate.toLowerCase();
 
@@ -408,25 +410,45 @@ export class IndexingManager {
 
     // 1. 用内存歌曲索引模糊搜索匹配歌曲（按评分降序）
     const matchedSongs = this.searchSong(songName);
-    if (matchedSongs.length === 0) return null;
-
     const matchedSongIds = new Set(matchedSongs.map(s => s.id));
 
-    // 2. 遍历歌单，收集所有匹配歌曲的位置信息
+    // 2. 遍历歌单，同时做两件事：
+    //    a) 收集全局索引命中歌曲的位置
+    //    b) 对歌单内歌曲直接模糊评分，记录最佳匹配（兜底用）
     const songLocationMap = new Map<number, SongLocation>();
+    let bestDirectLoc: SongLocation | null = null;
+    let bestDirectScore = 0;
+
     for (const pl of this.playlists) {
       try {
         const plSongs = (await songloft.playlists.getSongs(pl.id, { limit: 100000 })) ?? [];
         for (let idx = 0; idx < plSongs.length; idx++) {
-          const songId = plSongs[idx].id;
-          if (matchedSongIds.has(songId) && !songLocationMap.has(songId)) {
-            songLocationMap.set(songId, {
+          const s = plSongs[idx];
+
+          // a) 全局索引命中
+          if (matchedSongIds.has(s.id) && !songLocationMap.has(s.id)) {
+            songLocationMap.set(s.id, {
               playlistId: pl.id,
               playlistName: pl.name,
               songIndex: idx,
-              songTitle: plSongs[idx].title ?? '',
-              artist: plSongs[idx].artist ?? '',
+              songTitle: s.title ?? '',
+              artist: s.artist ?? '',
             });
+          }
+
+          // b) 直接模糊评分（title + artist 取较高分）
+          const titleScore = fuzzyScore(songName, s.title ?? '');
+          const artistScore = fuzzyScore(songName, s.artist ?? '');
+          const score = Math.max(titleScore, artistScore);
+          if (score > bestDirectScore) {
+            bestDirectScore = score;
+            bestDirectLoc = {
+              playlistId: pl.id,
+              playlistName: pl.name,
+              songIndex: idx,
+              songTitle: s.title ?? '',
+              artist: s.artist ?? '',
+            };
           }
         }
       } catch (e) {
@@ -434,13 +456,14 @@ export class IndexingManager {
       }
     }
 
-    // 3. 按搜索评分顺序（最佳匹配优先）返回第一个有位置的歌曲
+    // 3. 优先返回全局索引命中（保持 searchSong 的评分排序）
     for (const song of matchedSongs) {
       const loc = songLocationMap.get(song.id);
       if (loc) return loc;
     }
 
-    return null;
+    // 4. 兜底：全局索引命中歌曲均不在歌单中，使用歌单内直接模糊匹配的最佳结果
+    return bestDirectLoc;
   }
 
   /**
