@@ -13,8 +13,8 @@
     "fetch:holidays": "node scripts/fetch-holidays.mjs"
   },
   "devDependencies": {
-    "@songloft/plugin-builder": "^2.0.0-alpha.1",
-    "@songloft/plugin-sdk": "^2.0.0-alpha.1",
+    "@songloft/plugin-builder": "^2.4.3",
+    "@songloft/plugin-sdk": "^2.4.3",
     "typescript": "^5.9.3"
   }
 }
