@@ -2867,6 +2867,9 @@ html.embed .player-bar {
     left: 0 !important;
     bottom: 0 !important;
 }
+html.embed #tab-player {
+    padding-top: 148px !important;
+}
 html.embed .playlist-selector {
     top: 92px !important;
     left: 0 !important;
