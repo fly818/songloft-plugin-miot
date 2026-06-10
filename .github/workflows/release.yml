@@ -48,6 +48,18 @@ jobs:
             }
           "
 
+      - name: Inject Tracely config and plugin version
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          sed -i "s|appId: ''|appId: '$TRACELY_APP_ID'|" static/js/app.js
+          sed -i "s|appSecret: ''|appSecret: '$TRACELY_APP_SECRET'|" static/js/app.js
+          sed -i "s|host: ''|host: '$TRACELY_HOST'|" static/js/app.js
+          sed -i "s|const PLUGIN_VERSION = '.*'|const PLUGIN_VERSION = '${VERSION}'|" static/js/app.js
+        env:
+          TRACELY_APP_ID: ${{ secrets.TRACELY_APP_ID }}
+          TRACELY_APP_SECRET: ${{ secrets.TRACELY_APP_SECRET }}
+          TRACELY_HOST: ${{ secrets.TRACELY_HOST }}
+
       - name: Build
         run: npm run build
 

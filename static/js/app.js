@@ -7,10 +7,12 @@
 
 /** Tracely 监控配置，请在此填写您的 AppID、AppSecret 和 Host */
 window.TRACELY_CONFIG = {
-    appId: 'mimusic-xiaomi',
-    appSecret: '9273893b129d5c9c423783ea512f409822c4117ab846e8908548443533022f06',
-    host: 'https://mimusictracely.hanxi.cc',
+    appId: '',
+    appSecret: '',
+    host: '',
 };
+
+const PLUGIN_VERSION = '2026.6.9';
 
 // ========== 全局变量（当前选中的设备） ==========
 window.currentAccountId = '';
@@ -203,6 +205,17 @@ document.addEventListener('DOMContentLoaded', () => {
     if (window.TRACELY_CONFIG.appId && window.TRACELY_CONFIG.appSecret && window.TRACELY_CONFIG.host) {
         window.tracely = new Tracely(window.TRACELY_CONFIG);
         window.tracely.init();
+
+        // 上报安装或升级事件
+        const lastVersion = localStorage.getItem('miot_tracely_version');
+        if (!lastVersion) {
+            window.tracely.reportInstall(PLUGIN_VERSION, 'web');
+        } else if (lastVersion !== PLUGIN_VERSION) {
+            window.tracely.reportUpgrade(lastVersion, PLUGIN_VERSION, 'web');
+        }
+        if (lastVersion !== PLUGIN_VERSION) {
+            localStorage.setItem('miot_tracely_version', PLUGIN_VERSION);
+        }
     }
 
     // 初始化 Dialog 事件监听
