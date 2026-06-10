@@ -116,7 +116,7 @@ export class AIAnalyzer {
       model: config.model,
       messages,
       temperature: 1.0,
-      max_tokens: 100,
+      max_tokens: 300,
       response_format: { type: 'json_object' },
       extra_body: { reasoning_split: true },
     };
@@ -148,8 +148,13 @@ export class AIAnalyzer {
 
     const data = await resp.json();
     const content = data.choices?.[0]?.message?.content as string | undefined;
+    const finishReason = data.choices?.[0]?.finish_reason as string | undefined;
     if (!content) {
       throw new Error('Empty response from AI API');
+    }
+
+    if (finishReason && finishReason !== 'stop') {
+      songloft.log.warn(`[AIAnalyzer] Finish reason: ${finishReason} (content may be truncated)`);
     }
 
     songloft.log.info(`[AIAnalyzer] API response: ${content.slice(0, 200)}`);
@@ -176,7 +181,7 @@ export class AIAnalyzer {
         rawText: parsed.rawText || '',
       };
     } catch {
-      // 解析失败，兜底
+      songloft.log.warn(`[AIAnalyzer] Direct JSON parse failed, content: ${content.slice(0, 300)}`);
     }
 
     // 兜底：去掉思考标签后再提取 JSON
@@ -196,15 +201,19 @@ export class AIAnalyzer {
     }
 
     const jsonStr = cleaned.slice(firstBrace, end + 1);
-    const parsed = JSON.parse(jsonStr);
-
-    return {
-      action: parsed.action || 'unknown',
-      params: parsed.params || {},
-      confidence: (parsed.confidence === 'high' || parsed.confidence === 'medium' || parsed.confidence === 'low')
-        ? parsed.confidence
-        : 'low',
-      rawText: parsed.rawText || '',
-    };
+    try {
+      const parsed = JSON.parse(jsonStr);
+      return {
+        action: parsed.action || 'unknown',
+        params: parsed.params || {},
+        confidence: (parsed.confidence === 'high' || parsed.confidence === 'medium' || parsed.confidence === 'low')
+          ? parsed.confidence
+          : 'low',
+        rawText: parsed.rawText || '',
+      };
+    } catch {
+      songloft.log.warn(`[AIAnalyzer] Fallback JSON parse also failed, extracted: ${jsonStr.slice(0, 300)}`);
+      throw new Error(`Failed to parse AI response: ${jsonStr.slice(0, 100)}`);
+    }
   }
 }

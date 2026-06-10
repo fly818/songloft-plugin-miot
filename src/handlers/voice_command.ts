@@ -4,6 +4,7 @@
 import { jsonResponse } from '@songloft/plugin-sdk';
 import type { Router, HTTPRequest } from '@songloft/plugin-sdk';
 import { ConfigManager } from '../config/manager';
+import { AIAnalyzer } from '../voicecmd/ai_analyzer';
 
 /** 解析请求体（兼容 Uint8Array 和 string） */
 function parseBody(req: HTTPRequest): any {
@@ -22,6 +23,7 @@ function parseBody(req: HTTPRequest): any {
  * 注册语音口令相关路由
  * GET  /voice-commands → 获取语音口令配置
  * POST /voice-commands → 设置语音口令配置
+ * POST /voice-commands/ai-test → 测试 AI 口令分析
  */
 export function registerVoiceCommandHandlers(
   router: Router,
@@ -54,6 +56,31 @@ export function registerVoiceCommandHandlers(
 
       await configManager.saveVoiceCommands(commands);
       return jsonResponse({ success: true, data: { message: 'voice commands saved', commands } });
+    } catch (e: any) {
+      return jsonResponse({ success: false, error: e.message || String(e) });
+    }
+  });
+
+  // POST /voice-commands/ai-test - 测试 AI 口令分析
+  router.post('/voice-commands/ai-test', async (req: HTTPRequest) => {
+    try {
+      const body = parseBody(req);
+      const query = body.query as string | undefined;
+
+      if (!query || typeof query !== 'string' || !query.trim()) {
+        return jsonResponse({ success: false, error: 'query is required' });
+      }
+
+      const aiConfig = await configManager.getAIConfig();
+      if (!aiConfig.api_url || !aiConfig.api_key) {
+        return jsonResponse({ success: false, error: 'AI 配置不完整，请先填写 API 地址和密钥' });
+      }
+
+      // 测试时强制启用（忽略 saved enabled 状态）
+      aiConfig.enabled = true;
+      const analyzer = new AIAnalyzer();
+      const result = await analyzer.analyze(query, aiConfig);
+      return jsonResponse({ success: true, data: result });
     } catch (e: any) {
       return jsonResponse({ success: false, error: e.message || String(e) });
     }

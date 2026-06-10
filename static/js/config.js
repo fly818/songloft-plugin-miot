@@ -1073,6 +1073,44 @@ export function initAIConfigUI() {
     if (saveBtn) {
         saveBtn.addEventListener('click', saveAIConfig);
     }
+
+    // AI 测试按钮
+    const testBtn = document.getElementById('aiTestBtn');
+    const testInput = document.getElementById('aiTestInput');
+    const testResult = document.getElementById('aiTestResult');
+    if (testBtn && testInput && testResult) {
+        testBtn.addEventListener('click', async function() {
+            const query = testInput.value.trim();
+            if (!query) {
+                testResult.style.display = 'block';
+                testResult.style.color = 'var(--md-error)';
+                testResult.textContent = '请输入语音指令';
+                return;
+            }
+
+            testBtn.disabled = true;
+            testResult.style.display = 'block';
+            testResult.style.color = 'var(--md-on-surface-variant)';
+            testResult.textContent = '分析中...';
+
+            try {
+                const json = await apiPost('/voice-commands/ai-test', { query });
+                if (json.success && json.data) {
+                    const d = json.data;
+                    testResult.style.color = 'var(--md-primary)';
+                    testResult.textContent = `操作: ${d.action}\n参数: ${JSON.stringify(d.params, null, 2)}\n置信度: ${d.confidence}\n有效文本: ${d.rawText}`;
+                } else {
+                    testResult.style.color = 'var(--md-error)';
+                    testResult.textContent = '分析失败: ' + (json.error || '未知错误');
+                }
+            } catch (e) {
+                testResult.style.color = 'var(--md-error)';
+                testResult.textContent = '请求失败: ' + e.message;
+            } finally {
+                testBtn.disabled = false;
+            }
+        });
+    }
 }
 
 /**

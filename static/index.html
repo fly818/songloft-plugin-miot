@@ -405,6 +405,18 @@
                                     保存
                                 </button>
                             </div>
+
+                            <!-- AI 分析测试 -->
+                            <div style="margin-top:12px;padding:10px 12px;background:rgba(0,0,0,0.03);border-radius:6px">
+                                <div style="font-size:12px;color:var(--md-on-surface-variant);margin-bottom:6px;font-weight:500">口令分析测试</div>
+                                <div style="display:flex;gap:6px">
+                                    <input type="text" id="aiTestInput" class="text-field" style="flex:1;font-size:13px;padding:6px 10px" placeholder="输入语音指令，例如「播放周杰伦的晴天」">
+                                    <button class="btn-filled" id="aiTestBtn" style="padding:6px 16px">
+                                        <span class="material-symbols-outlined" style="font-size:16px">send</span>
+                                    </button>
+                                </div>
+                                <div id="aiTestResult" style="margin-top:8px;font-size:12px;color:var(--md-on-surface-variant);white-space:pre-wrap;word-break:break-all;display:none"></div>
+                            </div>
                         </div>
                     </div>
                 </div>
