@@ -59,6 +59,7 @@ export function loadConfig() {
                 voiceSwitchEl.checked = voiceEnabled;
             }
             updateVoiceCommandStatus(voiceEnabled);
+            updateVoiceCommandDependency();
 
             // 音频格式开关
             const forceMp3 = !!data.data.force_mp3;
@@ -90,6 +91,7 @@ export function loadConfig() {
             if (externalSearchTokenInput) {
                 externalSearchTokenInput.value = data.data.external_search_token || '';
             }
+            updateExternalSearchDependency();
 
             // 搜索提示 TTS 配置
             const interruptTtsEnabled = !!data.data.interrupt_tts_hint_enabled;
@@ -117,6 +119,7 @@ export function loadConfig() {
             if (data.data.ai_config) {
                 loadAIConfig(data.data.ai_config);
             }
+            updateAIAnalysisDependency();
         }
     }).catch(error => {
         console.error('加载配置失败:', error);
@@ -276,6 +279,15 @@ export function initExternalSearchUI() {
     const switchEl = document.getElementById('externalSearchSwitch');
     if (switchEl) {
         switchEl.addEventListener('change', function() {
+            // 尝试开启时检查语音口令依赖
+            if (this.checked) {
+                const voiceSwitch = document.getElementById('voiceCommandSwitch');
+                if (voiceSwitch && !voiceSwitch.checked) {
+                    showSnackbar('请先开启语音口令', 'error');
+                    this.checked = false;
+                    return;
+                }
+            }
             updateExternalSearchConfig(this.checked);
         });
     }
@@ -470,7 +482,13 @@ function toggleConversationMonitor(enabled) {
                     loadConversationStatus();
                 } else {
                     stopConversationPoll();
+                    // 关闭对话监听时联动关闭语音口令和 AI 分析
+                    const voiceSwitchEl = document.getElementById('voiceCommandSwitch');
+                    if (voiceSwitchEl && voiceSwitchEl.checked) {
+                        toggleVoiceCommand(false);
+                    }
                 }
+                updateVoiceCommandDependency();
             } else {
                 showSnackbar('操作失败：' + (data.error || '未知错误'), 'error');
                 // 恢复开关状态
@@ -754,11 +772,36 @@ export function initVoiceCommandUI() {
  * 切换语音口令开关
  */
 function toggleVoiceCommand(enabled) {
+    // 如果尝试开启但对话监听未启用，阻止操作
+    if (enabled) {
+        const monitorSwitch = document.getElementById('conversationMonitorSwitch');
+        if (monitorSwitch && !monitorSwitch.checked) {
+            showSnackbar('请先开启对话监听', 'error');
+            const switchEl = document.getElementById('voiceCommandSwitch');
+            if (switchEl) switchEl.checked = false;
+            return;
+        }
+    }
+
     apiPost('/config', { voice_command_enabled: enabled })
         .then(data => {
             if (data.success) {
                 showSnackbar(enabled ? '语音口令已开启' : '语音口令已关闭', 'success');
                 updateVoiceCommandStatus(enabled);
+                if (!enabled) {
+                    // 关闭语音口令时联动关闭 AI 分析和外部搜索
+                    const aiSwitchEl = document.getElementById('aiAnalysisSwitch');
+                    if (aiSwitchEl && aiSwitchEl.checked) {
+                        toggleAIAnalysis(false);
+                    }
+                    const extSwitchEl = document.getElementById('externalSearchSwitch');
+                    if (extSwitchEl && extSwitchEl.checked) {
+                        extSwitchEl.checked = false;
+                        updateExternalSearchConfig(false);
+                    }
+                }
+                updateAIAnalysisDependency();
+                updateExternalSearchDependency();
             } else {
                 showSnackbar('操作失败：' + (data.error || '未知错误'), 'error');
                 const switchEl = document.getElementById('voiceCommandSwitch');
@@ -783,6 +826,30 @@ function updateVoiceCommandStatus(enabled) {
 }
 
 /**
+ * 更新语音口令开关的依赖状态
+ * 对话监听未开启时，语音口令开关置灰并显示提示
+ */
+function updateVoiceCommandDependency() {
+    const monitorSwitch = document.getElementById('conversationMonitorSwitch');
+    const voiceSwitch = document.getElementById('voiceCommandSwitch');
+    const hintEl = document.getElementById('voiceCommandDependencyHint');
+
+    if (!monitorSwitch || !voiceSwitch) return;
+
+    const monitorEnabled = monitorSwitch.checked;
+    voiceSwitch.disabled = !monitorEnabled;
+
+    const voiceRow = voiceSwitch.closest('.switch-row');
+    if (voiceRow) {
+        voiceRow.classList.toggle('switch-row-disabled', !monitorEnabled);
+    }
+
+    if (hintEl) {
+        hintEl.style.display = monitorEnabled ? 'none' : 'block';
+    }
+}
+
+/**
  * 加载语音口令配置
  */
 export function loadVoiceCommands() {
@@ -795,12 +862,7 @@ export function loadVoiceCommands() {
             if (switchEl) switchEl.checked = !!enabled;
             updateVoiceCommandStatus(!!enabled);
 
-            // 检查对话监听是否开启
-            const monitorSwitch = document.getElementById('conversationMonitorSwitch');
-            const hintEl = document.getElementById('voiceCommandDependencyHint');
-            if (hintEl) {
-                hintEl.style.display = (monitorSwitch && !monitorSwitch.checked) ? 'block' : 'none';
-            }
+            updateVoiceCommandDependency();
 
             // 渲染口令列表
             currentVoiceCommands = commands || [];
@@ -1023,6 +1085,7 @@ function loadAIConfig(aiConfig) {
         switchEl.checked = enabled;
     }
     updateAIConfigStatus(enabled);
+    updateAIAnalysisDependency();
 
     const panel = document.getElementById('aiConfigPanel');
     if (panel) {
@@ -1054,6 +1117,17 @@ function loadAIConfig(aiConfig) {
  * 切换 AI 分析开关
  */
 function toggleAIAnalysis(enabled) {
+    // 如果尝试开启但语音口令未启用，阻止操作
+    if (enabled) {
+        const voiceSwitchEl = document.getElementById('voiceCommandSwitch');
+        if (voiceSwitchEl && !voiceSwitchEl.checked) {
+            showSnackbar('请先开启语音口令', 'error');
+            const switchEl = document.getElementById('aiAnalysisSwitch');
+            if (switchEl) switchEl.checked = false;
+            return;
+        }
+    }
+
     apiPost('/config', { ai_config: { enabled } })
         .then(data => {
             if (data.success) {
@@ -1110,6 +1184,54 @@ function updateAIConfigStatus(enabled) {
     const statusText = document.getElementById('aiAnalysisStatusText');
     if (statusText) {
         statusText.textContent = enabled ? '已开启' : '已关闭';
+    }
+}
+
+/**
+ * 更新 AI 分析开关的依赖状态
+ * 语音口令未开启时，AI 分析开关置灰并显示提示
+ */
+function updateAIAnalysisDependency() {
+    const voiceSwitch = document.getElementById('voiceCommandSwitch');
+    const aiSwitch = document.getElementById('aiAnalysisSwitch');
+    const hintEl = document.getElementById('aiAnalysisDependencyHint');
+
+    if (!voiceSwitch || !aiSwitch) return;
+
+    const voiceEnabled = voiceSwitch.checked;
+    aiSwitch.disabled = !voiceEnabled;
+
+    const aiRow = aiSwitch.closest('.switch-row');
+    if (aiRow) {
+        aiRow.classList.toggle('switch-row-disabled', !voiceEnabled);
+    }
+
+    if (hintEl) {
+        hintEl.style.display = voiceEnabled ? 'none' : 'block';
+    }
+}
+
+/**
+ * 更新外部搜索开关的依赖状态
+ * 语音口令未开启时，外部搜索开关置灰并显示提示
+ */
+function updateExternalSearchDependency() {
+    const voiceSwitch = document.getElementById('voiceCommandSwitch');
+    const extSwitch = document.getElementById('externalSearchSwitch');
+    const hintEl = document.getElementById('externalSearchDependencyHint');
+
+    if (!voiceSwitch || !extSwitch) return;
+
+    const voiceEnabled = voiceSwitch.checked;
+    extSwitch.disabled = !voiceEnabled;
+
+    const extRow = extSwitch.closest('.switch-row');
+    if (extRow) {
+        extRow.classList.toggle('switch-row-disabled', !voiceEnabled);
+    }
+
+    if (hintEl) {
+        hintEl.style.display = voiceEnabled ? 'none' : 'block';
     }
 }
 

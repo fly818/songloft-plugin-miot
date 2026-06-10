@@ -336,7 +336,7 @@
                     <!-- 依赖提示 -->
                     <div id="voiceCommandDependencyHint" class="voice-cmd-hint" style="display:none;margin-top:8px">
                         <span class="material-symbols-outlined" style="font-size:16px;vertical-align:middle">warning</span>
-                        需要先开启对话监听才能使用语音口令
+                        需要先开启「对话监听」才能使用语音口令
                     </div>
 
                     <!-- 口令列表 -->
@@ -369,6 +369,12 @@
                                 <input type="checkbox" id="aiAnalysisSwitch">
                                 <span class="switch-slider"></span>
                             </label>
+                        </div>
+
+                        <!-- AI 分析依赖提示 -->
+                        <div id="aiAnalysisDependencyHint" class="voice-cmd-hint" style="display:none;margin-top:8px">
+                            <span class="material-symbols-outlined" style="font-size:16px;vertical-align:middle">warning</span>
+                            需要先开启「语音口令」才能使用 AI 分析
                         </div>
 
                         <!-- AI 配置表单 -->
@@ -418,11 +424,18 @@
                                 💡 启用后，系统将在本地歌曲搜索未命中时调用外部接口。
                             </div>
                         </div>
-                        <label class="switch">
+                            <label class="switch">
                             <input type="checkbox" id="externalSearchSwitch">
                             <span class="switch-slider"></span>
                         </label>
                     </div>
+
+                    <!-- 外部搜索依赖提示 -->
+                    <div id="externalSearchDependencyHint" class="voice-cmd-hint" style="display:none;margin-top:8px">
+                        <span class="material-symbols-outlined" style="font-size:16px;vertical-align:middle">warning</span>
+                        需要先开启「语音口令」才能使用外部搜索
+                    </div>
+
                     <div id="externalSearchConfigPanel" style="display:none;margin-top:12px">
                         <div style="margin-bottom:10px">
                             <div style="font-size:12px;color:var(--md-on-surface-variant);margin-bottom:4px;font-weight:500">搜索 API 地址</div>

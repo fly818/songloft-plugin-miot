@@ -2190,6 +2190,16 @@
     left: 2px;
 }
 
+.switch input:disabled + .switch-slider {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+.switch-row-disabled .switch-row-title,
+.switch-row-disabled .switch-row-subtitle {
+    opacity: 0.4;
+}
+
 /* Status Chips */
 .status-chips {
     display: flex;
