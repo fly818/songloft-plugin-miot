@@ -327,6 +327,15 @@ export class PlaylistManager {
   }
 
   /**
+   * 挂起播放：停止切歌定时器但保持 playing 状态
+   * 用于语音交互打断时，防止定时器在 AI 响应期间触发 onSongFinished，
+   * 同时保持状态为 playing 以便后续 resumePlayback() 恢复。
+   */
+  suspendForVoiceInteraction(): void {
+    this.stopCheckTimer();
+  }
+
+  /**
    * 使用已有歌曲列表初始化播放列表（恢复用）
    */
   initWithSongs(songs: Song[], startIndex: number, playMode: PlayMode, playlistId: number): void {

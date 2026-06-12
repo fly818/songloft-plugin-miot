@@ -149,7 +149,30 @@ export class VoiceEngine {
     songloft.log.info(`[VoiceEngine] [Rule] Matching query="${query}"`);
     const result = await this.matchCommand(query);
     if (!result) {
-      songloft.log.info(`[VoiceEngine] [Rule] No match found, ignoring`);
+      songloft.log.info(`[VoiceEngine] [Rule] No match found`);
+
+      // 任何语音交互都会唤醒音箱并打断 URL 播放。
+      // 立即挂起定时器（防止 AI 响应期间触发切歌），延迟后尝试恢复播放。
+      const pm = this.playlistManagerMap.get(accountId, msg.device_id);
+      if (pm && pm.isPlaying()) {
+        pm.suspendForVoiceInteraction();
+        songloft.log.info('[VoiceEngine] Unmatched command while playing, suspended timer, will try resume after delay');
+        setTimeout(async () => {
+          try {
+            const ok = await pm.resumePlayback();
+            if (ok) {
+              songloft.log.info('[VoiceEngine] Playback resumed after unmatched command');
+            } else {
+              songloft.log.info('[VoiceEngine] Resume failed after unmatched command, resetting state');
+              pm.prepareForNewPlayback();
+            }
+          } catch (e) {
+            songloft.log.error('[VoiceEngine] Error resuming after unmatched command: ' + String(e));
+            pm.prepareForNewPlayback();
+          }
+        }, 5000);
+      }
+
       return;
     }
 
