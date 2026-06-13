@@ -720,14 +720,19 @@ export class VoiceEngine {
   private extractNumber(s: string): number | null {
     if (!s) return null;
 
+    // 剥离"百分之"前缀，避免"百"被误解析为数字 100
+    const cleaned = s.replace(/百分之/g, '');
+
+    const target = cleaned || s;
+
     // 优先尝试阿拉伯数字
-    const numMatch = s.match(/\d+/);
+    const numMatch = target.match(/\d+/);
     if (numMatch) {
       return parseInt(numMatch[0], 10);
     }
 
     // 尝试中文数字
-    const cnMatch = s.match(/[零一二三四五六七八九十百千万]+/);
+    const cnMatch = target.match(/[零一二三四五六七八九十百千万]+/);
     if (cnMatch) {
       return this.parseChineseNumber(cnMatch[0]);
     }
