@@ -36,7 +36,7 @@ function defaultPluginConfig(): PluginConfig {
     voice_command_enabled: false,
     scheduled_tasks_enabled: false,
     force_mp3: false,
-    indicator_light_enabled: false,
+    indicator_light_enabled: true,
     interrupt_tts_hint_enabled: false,
     interrupt_tts_hint_text: '正在搜索，请稍候',
     ai_config: defaultAIConfig(),
