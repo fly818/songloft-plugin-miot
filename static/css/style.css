@@ -134,6 +134,7 @@
     padding-top: 72px;
     padding-bottom: 200px;
     min-height: 100vh;
+    overflow-x: hidden;
 }
 
 #tab-player {
@@ -1596,6 +1597,13 @@
 @media (max-width: 900px) {
     .container {
         padding: 0 12px;
+    }
+
+    #songSearchBar {
+        margin-left: -12px;
+        margin-right: -12px;
+        padding-left: 12px;
+        padding-right: 12px;
     }
 
     .app-bar h1 {
