@@ -331,11 +331,13 @@ export function registerPlaylistHandlers(
       // 检查设备状态缓存（4秒内直接复用，避免多调用方重复查询设备）
       const cached = deviceStatusCache.get(cacheKey);
       if (cached && (now - cached.timestamp) < DEVICE_STATUS_TTL) {
+        const duration = localStatus.duration > 0 ? localStatus.duration : cached.duration;
+
         // 播放中时用缓存position + 已过时间推算当前位置，避免返回过时进度
         let position = cached.position;
-        if (cached.state === 'playing' && cached.duration > 0) {
+        if (cached.state === 'playing' && duration > 0) {
           const elapsed = (now - cached.timestamp) / 1000;
-          position = Math.min(cached.position + elapsed, cached.duration);
+          position = Math.min(cached.position + elapsed, duration);
         }
 
         // 设备状态与本地 PlaylistManager 不一致时同步（防止外部操作如"小爱同学停止"后本地定时器仍在跑）
@@ -353,7 +355,7 @@ export function registerPlaylistHandlers(
 
         return jsonResponse({
           success: true,
-          data: { ...localStatus, state: cached.state, position, duration: cached.duration, volume: cached.volume },
+          data: { ...localStatus, state: cached.state, position, duration, volume: cached.volume },
         });
       }
 
@@ -379,6 +381,12 @@ export function registerPlaylistHandlers(
         }
       } catch (e: any) {
         songloft.log.warn('[player/status] getPlayerStatus failed: ' + String(e));
+      }
+
+      // 本地歌曲 duration（来自文件元数据）比设备报告的更可靠，
+      // 设备在 MUSIC 模式（keepLight=true）下经常报告错误的 duration
+      if (localStatus.duration > 0) {
+        realDuration = localStatus.duration;
       }
 
       // 更新缓存
