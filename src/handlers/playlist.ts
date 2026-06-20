@@ -387,9 +387,13 @@ export function registerPlaylistHandlers(
           manager.resetAutoNextTimer(cached.position);
         }
 
+        // 本地已 stop 时，不让设备残留的播放状态覆盖，避免前端进度条跳动
+        const reportState = localStatus.state === 'stopped' ? 'stopped' : cached.state;
+        const reportPosition = localStatus.state === 'stopped' ? 0 : position;
+
         return jsonResponse({
           success: true,
-          data: { ...localStatus, state: cached.state, position, duration, volume: cached.volume },
+          data: { ...localStatus, state: reportState, position: reportPosition, duration, volume: cached.volume },
         });
       }
 
@@ -451,9 +455,13 @@ export function registerPlaylistHandlers(
         manager.resetAutoNextTimer(realPosition);
       }
 
+      // 本地已 stop 时，不让设备残留的播放状态覆盖
+      const reportState = localStatus.state === 'stopped' ? 'stopped' : realState;
+      const reportPosition = localStatus.state === 'stopped' ? 0 : realPosition;
+
       return jsonResponse({
         success: true,
-        data: { ...localStatus, state: realState, position: realPosition, duration: realDuration, volume },
+        data: { ...localStatus, state: reportState, position: reportPosition, duration: realDuration, volume },
       });
     } catch (e: any) {
       return jsonResponse({ success: false, error: e.message || String(e) });

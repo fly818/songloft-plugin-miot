@@ -151,9 +151,8 @@ export class PlaylistManager {
     this.state = 'stopped';
     this.playStartTimeMs = 0;
 
-    // 调用设备暂停
     if (this.accountId && this.deviceId) {
-      await this.minaService.pausePlay(this.accountId, this.deviceId);
+      await this.minaService.stopPlay(this.accountId, this.deviceId);
     }
 
     songloft.log.info('[PlaylistManager] Playback stopped');

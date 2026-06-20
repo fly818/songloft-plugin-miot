@@ -359,12 +359,16 @@ export function updatePlayerUI(status) {
         lastUpdateTime = performance.now();
     }
 
+    // stopped 状态强制归零，防止设备残留数据导致进度条跳动
+    if (status.state === 'stopped') {
+        currentPosition = 0;
+    }
+
     isCurrentlyPlaying = !!status.is_playing;
     if (isCurrentlyPlaying) {
         startProgressAnimation();
     } else {
         stopProgressAnimation();
-        // 静态显示当前进度
         updateProgressDOM(currentPosition, currentDuration);
     }
 
