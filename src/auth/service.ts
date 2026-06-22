@@ -97,14 +97,25 @@ export class AuthService {
       // 创建 MinaHTTPClient 并保存
       await this.setupMinaClient(accountId, result.tokenInfo);
 
-      // 保存密码和登录方式
-      await this.configManager.updateAccount(accountId, {
+      // 保存密码、登录方式和 passToken（passToken 用于后续 serviceToken 续期）
+      const passToken = auth.getCookieJar().getValue('passToken');
+      const updates: Record<string, any> = {
         password,
         login_method: 'password',
-      });
+      };
+      if (passToken) {
+        updates.pass_token = passToken;
+      }
+      if (result.tokenInfo.user_id) {
+        updates.user_id = result.tokenInfo.user_id;
+      }
+      await this.configManager.updateAccount(accountId, updates);
 
       // 保存 token 信息
       await this.saveTokenInfo(accountId, result.tokenInfo);
+
+      // 启动 Token 刷新定时器
+      this.startTokenRefresh(accountId);
 
       return { state: 'success', message: '登录成功' };
     }
@@ -182,6 +193,9 @@ export class AuthService {
 
     // 保存 token 信息
     await this.saveTokenInfo(effectiveAccountId, result.tokenInfo);
+
+    // 启动 Token 刷新定时器
+    this.startTokenRefresh(effectiveAccountId);
 
     return { state: 'success', message: '令牌设置成功' };
   }
@@ -722,11 +736,24 @@ export class AuthService {
       // 创建 MinaHTTPClient 并保存
       await this.setupMinaClient(accountId, result.tokenInfo);
 
-      // 保存登录方式
-      await this.configManager.updateAccount(accountId, { login_method: 'password' });
+      // 保存登录方式和 passToken
+      const updates: Record<string, any> = { login_method: 'password' };
+      if (session.auth) {
+        const passToken = session.auth.getCookieJar().getValue('passToken');
+        if (passToken) {
+          updates.pass_token = passToken;
+        }
+      }
+      if (result.tokenInfo.user_id) {
+        updates.user_id = result.tokenInfo.user_id;
+      }
+      await this.configManager.updateAccount(accountId, updates);
 
       // 保存 token 信息
       await this.saveTokenInfo(accountId, result.tokenInfo);
+
+      // 启动 Token 刷新定时器
+      this.startTokenRefresh(accountId);
 
       return { state: 'success', message: '登录成功' };
     }
