@@ -74,6 +74,7 @@ export function registerConfigHandlers(
           external_search_enabled: !!config.external_search_enabled,
           external_search_url: config.external_search_url || '',
           external_search_token: config.external_search_token || '',
+          external_search_playlist_id: config.external_search_playlist_id ?? '1',
           extra_music_api_models: config.extra_music_api_models || [],
           indicator_light_enabled: !!config.indicator_light_enabled,
           interrupt_tts_hint_enabled: !!config.interrupt_tts_hint_enabled,
@@ -145,6 +146,13 @@ export function registerConfigHandlers(
       // 更新 external_search_enabled
       if (body.external_search_enabled !== undefined) {
         config.external_search_enabled = !!body.external_search_enabled;
+      }
+
+      // 更新 external_search_playlist_id
+      if (body.external_search_playlist_id !== undefined) {
+        config.external_search_playlist_id = typeof body.external_search_playlist_id === 'string'
+          ? body.external_search_playlist_id.trim()
+          : String(body.external_search_playlist_id);
       }
 
       // 更新 indicator_light_enabled

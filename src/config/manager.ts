@@ -86,9 +86,10 @@ export class ConfigManager {
 
   // ===== 全局配置 =====
 
-  /** 获取插件全局配置 */
+  /** 获取插件全局配置（与默认值合并，确保新增字段有默认值） */
   async getConfig(): Promise<PluginConfig> {
-    return this.load<PluginConfig>(STORAGE_KEY_CONFIG, defaultPluginConfig());
+    const stored = await this.load<Partial<PluginConfig>>(STORAGE_KEY_CONFIG, {});
+    return { ...defaultPluginConfig(), ...stored };
   }
 
   /** 保存插件全局配置 */

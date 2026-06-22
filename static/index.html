@@ -488,16 +488,24 @@
                             <input type="text" id="externalSearchUrlInput" class="text-field" style="font-size:13px;padding:7px 10px" placeholder="https://example.com/api/search/topone 或 /api/v1/jsplugin/**" aria-label="外部搜索 API 地址">
                         </div>
                         <div style="margin-top:10px">
-                            <div style="font-size:12px;color:var(--md-on-surface-variant);margin-bottom:4px;font-weight:500">Authorization Token 认证（可选,为空则使用插件Token）</div>
-                            <input type="text" id="externalSearchTokenInput" class="text-field" style="font-size:13px;padding:7px 10px" placeholder="Bearer *****" aria-label="外部搜索认证 Token">
+                        <div class="switch-row" style="margin-top:10px">
+                            <div class="switch-row-label">
+                                <span class="switch-row-title">自动追加到歌单</span>
+                                <span class="switch-row-subtitle">语音搜歌导入后自动追加到下方指定的歌单</span>
+                            </div>
+                            <label class="switch">
+                                <input type="checkbox" id="externalSearchAppendPlaylistSwitch" aria-label="自动追加到歌单">
+                                <span class="switch-slider"></span>
+                            </label>
+                        </div>
+                        <div id="externalSearchPlaylistPanel" style="margin-top:10px; display:none">
+                            <div style="font-size:12px;color:var(--md-on-surface-variant);margin-bottom:4px;font-weight:500">选择目标歌单</div>
+                            <select id="externalSearchPlaylistSelect" class="text-field" style="width:100%" aria-label="目标歌单">
+                                <option value="">-- 加载中 --</option>
+                            </select>
                         </div>
                     </div>
-                    <div class="toolbar" style="padding:12px 0 0;justify-content:flex-end">
-                        <button class="btn-filled" id="saveExternalSearchBtn">
-                            <span class="material-symbols-outlined">save</span>
-                            保存配置
-                        </button>
-                    </div>
+
                     <div style="margin-top:12px;padding:10px 12px;background:rgba(0,0,0,0.03);border-radius:6px">
                         <div style="font-size:12px;color:var(--md-on-surface-variant);margin-bottom:6px;font-weight:500">接口测试</div>
                         <div style="display:flex;gap:6px">
