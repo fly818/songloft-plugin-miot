@@ -74,7 +74,7 @@ export function registerConfigHandlers(
           external_search_enabled: !!config.external_search_enabled,
           external_search_url: config.external_search_url || '',
           external_search_token: config.external_search_token || '',
-          external_search_playlist_id: config.external_search_playlist_id ?? '1',
+          external_search_playlist_id: config.external_search_playlist_id ?? '',
           extra_music_api_models: config.extra_music_api_models || [],
           indicator_light_enabled: !!config.indicator_light_enabled,
           interrupt_tts_hint_enabled: !!config.interrupt_tts_hint_enabled,

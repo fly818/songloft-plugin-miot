@@ -109,8 +109,8 @@ export function loadConfig() {
 
                 apiGet('/playlists?limit=500').then(res => {
                     if (res.success && res.data) {
-                        externalSearchPlaylistSelect.innerHTML = res.data.map(p => 
-                            `<option value="${p.id}" ${String(p.id) === String(savedPid) ? 'selected' : ''}>${escapeHtml(p.name)}</option>`
+                        externalSearchPlaylistSelect.innerHTML = res.data.map(p =>
+                            `<option value="${escapeHtml(String(p.id))}" ${String(p.id) === String(savedPid) ? 'selected' : ''}>${escapeHtml(p.name)}</option>`
                         ).join('');
                     } else {
                         externalSearchPlaylistSelect.innerHTML = '<option value="">-- 获取歌单失败 --</option>';
@@ -314,7 +314,7 @@ function updateExternalSearchConfig(enabled) {
     }
 }
 
-function saveExternalSearchConfig(silent = false) {
+function saveExternalSearchConfig() {
     const switchEl = document.getElementById('externalSearchSwitch');
     const urlInput = document.getElementById('externalSearchUrlInput');
     const tokenInput = document.getElementById('externalSearchTokenInput');
@@ -328,7 +328,7 @@ function saveExternalSearchConfig(silent = false) {
     apiPost('/config', { external_search_enabled: enabled, external_search_url: url, external_search_token: token, external_search_playlist_id: playlistId })
         .then(data => {
             if (data.success) {
-                if (!silent) showSnackbar('外部搜索配置已保存', 'success');
+                showSnackbar('已保存', 'success');
             } else {
                 showSnackbar('保存失败：' + (data.error || '未知错误'), 'error');
             }
@@ -355,7 +355,7 @@ export function initExternalSearchUI() {
                 }
             }
             updateExternalSearchConfig(this.checked);
-            saveExternalSearchConfig(true);
+            saveExternalSearchConfig();
         });
     }
 
@@ -366,18 +366,18 @@ export function initExternalSearchUI() {
             if (panel) {
                 panel.style.display = this.checked ? 'block' : 'none';
             }
-            saveExternalSearchConfig(true);
+            saveExternalSearchConfig();
         });
     }
 
     const urlInput = document.getElementById('externalSearchUrlInput');
-    if (urlInput) urlInput.addEventListener('change', () => saveExternalSearchConfig(true));
+    if (urlInput) urlInput.addEventListener('change', () => saveExternalSearchConfig());
     
     const tokenInput = document.getElementById('externalSearchTokenInput');
-    if (tokenInput) tokenInput.addEventListener('change', () => saveExternalSearchConfig(true));
+    if (tokenInput) tokenInput.addEventListener('change', () => saveExternalSearchConfig());
 
     const playlistSelect = document.getElementById('externalSearchPlaylistSelect');
-    if (playlistSelect) playlistSelect.addEventListener('change', () => saveExternalSearchConfig(true));
+    if (playlistSelect) playlistSelect.addEventListener('change', () => saveExternalSearchConfig());
 
     const testBtn = document.getElementById('externalSearchTestBtn');
     const testInput = document.getElementById('externalSearchTestInput');
