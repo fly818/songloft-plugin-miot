@@ -95,7 +95,7 @@ export class PlaylistManager {
     // 加载歌单歌曲
     const loaded = await this.loadPlaylistSongs(playlistId);
     if (!loaded) {
-      songloft.log.error('[PlaylistManager] Failed to load playlist songs: ' + playlistId);
+      songloft.log.error('[PlaylistManager] play: loadPlaylistSongs returned false, playlistId=' + playlistId);
       return false;
     }
 
@@ -425,23 +425,34 @@ export class PlaylistManager {
 
   /**
    * 加载歌单歌曲（通过宿主API桥接）
+   * 首次返回空时延迟 500ms 重试一次（规避 SQLite WAL 长时间运行后的间歇性空返回）
    */
   private async loadPlaylistSongs(playlistId: number): Promise<boolean> {
-    try {
-      // 使用 songloft.playlists.getSongs 桥接调用（与 Go WASM 版本的 hostFunctions.CallRouter 等价）
-      // 这样不需要 hostBaseUrl 和 pluginToken，直接通过内部桥接访问数据库
-      const songs = await songloft.playlists.getSongs(playlistId, { limit: 100000 });
-      if (!songs || !Array.isArray(songs)) {
-        songloft.log.error('[PlaylistManager] Bridge returned invalid songs data for playlist: ' + playlistId);
+    const attempt = async (retry: boolean): Promise<boolean> => {
+      try {
+        const songs = await songloft.playlists.getSongs(playlistId, { limit: 100000 });
+        const desc = songs ? (Array.isArray(songs) ? String(songs.length) : 'non-array') : 'null';
+        songloft.log.info(`[PlaylistManager] loadPlaylistSongs playlistId=${playlistId} returned=${desc}${retry ? ' (retry)' : ''}`);
+        if (!songs || !Array.isArray(songs)) {
+          songloft.log.error('[PlaylistManager] Bridge returned invalid data for playlist: ' + playlistId);
+          return false;
+        }
+        this.songs = songs as any;
+        this.totalSongs = songs.length;
+        return songs.length > 0;
+      } catch (e) {
+        songloft.log.error(`[PlaylistManager] loadPlaylistSongs exception playlistId=${playlistId}${retry ? ' (retry)' : ''}: ${String(e)}`);
         return false;
       }
-      this.songs = songs as any;
-      this.totalSongs = songs.length;
-      return songs.length > 0;
-    } catch (e) {
-      songloft.log.error('[PlaylistManager] Failed to load playlist songs: ' + String(e));
-      return false;
+    };
+
+    const ok = await attempt(false);
+    if (!ok) {
+      songloft.log.warn(`[PlaylistManager] loadPlaylistSongs empty or failed, retrying in 500ms playlistId=${playlistId}`);
+      await new Promise(r => setTimeout(r, 500));
+      return attempt(true);
     }
+    return true;
   }
 
   /**
@@ -766,6 +777,8 @@ export class PlaylistManagerMap {
       let songs: Song[] = [];
       try {
         const result = await songloft.playlists.getSongs(devCfg.playlist_id, { limit: 100000 });
+        const desc = result ? (Array.isArray(result) ? String(result.length) : 'non-array') : 'null';
+        songloft.log.info(`[PlaylistManagerMap] restoreFromConfig playlistId=${devCfg.playlist_id} songs=${desc}`);
         if (result && Array.isArray(result)) {
           songs = result as any;
         }
