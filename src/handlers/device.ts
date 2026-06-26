@@ -206,22 +206,29 @@ export function registerDeviceHandlers(
   });
 
   // =====================================================================================
-  // GET /mina/status - 纯物理状态探针（与 /mina/play-url, /mina/pause 等物理层接口对称）
+  // GET /mina/status - 纯物理状态探针 (Physical Telemetry Probe)
   // =====================================================================================
-  // 用途：第三方插件（如洛雪投送插件）通过此接口获取音箱的绝对物理状态。
-  //       与 /player/status 的本质区别：
-  //       - 不读取 PlaylistManager（不混入本地歌单的幽灵数据）
-  //       - 不执行状态掩盖（不因本地 stopped 而屏蔽真实 playing）
-  //       - 不产生副作用（不触发定时器重置、语音挂起判断等）
+  // 核心原则：
+  //   1. 读写分离：本接口属于数据平面 (Data Plane)，纯只读，绝不改变系统及硬件状态。
+  //   2. 绝对真实：穿透一切业务逻辑掩盖，如实反馈硬件底层状态。
   //
-  // 返回字段：
-  //   state      - 播放状态："playing" | "paused" | "stopped" | "unknown"
-  //   position   - 当前播放进度（秒），缓存命中时会基于时间戳做平滑预估
-  //   volume     - 当前音量（0-100），用户通过 /mina/volume 设置后有 10 秒锁定期保护
-  //   is_playing - 便捷布尔值，等价于 state === "playing"
+  // 【集成指南 (Integration Guide)】：给第三方插件开发者的务实建议
+  // 
+  // 1. 状态降级处理 (State Degradation)：
+  //    - `state` 可能返回 "unknown"（如网络抖动、云端 502）。消费端切勿在遇到 unknown 时销毁核心上下文，应保持轮询直至恢复。
+  // 
+  // 2. 音量空值处理 (Nullable Volume)：
+  //    - `volume` 为 0-100 的整数，或者在无法获取时返回 `null`（而非 -1）。
+  //    - 强烈建议消费端使用可选链/空值合并语法：`const v = data.volume ?? lastKnown;`
+  // 
+  // 3. 轮询频率节流 (Polling Throttling)：
+  //    - 接口底层设有 4 秒的物理查询缓存。
+  //    - 最佳实践：轮询频率（Interval）建议设置在 1000ms ~ 2000ms。过度高频轮询只会命中缓存，无法获得更高精度的状态。
+  //    - 缓存命中时，`position` 字段会自动基于系统时钟进行毫秒级外推，保证进度条平滑。
   //
-  // 注：不返回 duration，因为硬件上报的 duration 极度不可靠，客户端应自行解析音频源元数据。
-  // 限流：共享宿主的 4 秒物理缓存（DEVICE_STATUS_TTL），防止刷爆小米云端 API。
+  // 4. 时长弃用声明 (Duration Deprecation)：
+  //    - 接口故意不返回 `duration`。因为不同厂商/不同音频格式的硬件解码器推算的 duration 极度不可靠。
+  //    - 消费端应该自行从上游（如音乐源数据）获取准确时长，而不是依赖探针。
   // =====================================================================================
   router.get('/mina/status', async (req: HTTPRequest) => {
     try {
@@ -245,11 +252,9 @@ export function registerDeviceHandlers(
           position = cached.position + elapsed;
         }
 
-        // 音量锁定期保护：用户通过 /mina/volume 设置新音量后 10 秒内，
-        // 云端可能还没同步，此时应返回缓存中的用户设定值，避免"回弹"
-        const volume = (cached.volumeLockedUntil && now < cached.volumeLockedUntil)
-          ? cached.volume
-          : cached.volume;
+        // 音量：直接使用缓存值。用户设定的新音量已经写入缓存并带有锁定期，
+        // 缓存有效时，直接返回该值即可，无需冗余判断。
+        const volume = cached.volume;
 
         return jsonResponse({
           success: true,
@@ -268,27 +273,31 @@ export function registerDeviceHandlers(
       
       let state = 'unknown';
       let position = 0;
-      let volume = cached?.volume ?? -1; // 保留上次已知音量作为兜底
+      let volume = cached?.volume ?? null; // 保留上次已知音量作为兜底，无数据时严格返回 null
 
       if (typeof info === 'string') {
-        const parsed = JSON.parse(info);
+        try {
+          const parsed = JSON.parse(info);
 
-        // 音量：尊重锁定期，防止用户刚设完音量就被云端旧值覆盖
-        if (typeof parsed.volume === 'number') {
-          if (!cached?.volumeLockedUntil || now > cached.volumeLockedUntil) {
-            volume = parsed.volume;
+          // 音量：尊重锁定期，防止用户刚设完音量就被云端旧值覆盖
+          if (typeof parsed.volume === 'number') {
+            if (!cached?.volumeLockedUntil || now > cached.volumeLockedUntil) {
+              volume = parsed.volume;
+            }
           }
-        }
 
-        // 状态枚举映射（小米硬件底层协议：1=playing, 2=paused, 0=stopped）
-        if (parsed.status === 1) state = 'playing';
-        else if (parsed.status === 2) state = 'paused';
-        else if (parsed.status === 0) state = 'stopped';
-        
-        // 播放进度（云端返回毫秒，转换为秒）
-        if (parsed.play_song_detail) {
-          const d = parsed.play_song_detail;
-          if (typeof d.position === 'number') position = Math.floor(d.position / 1000);
+          // 状态枚举映射（小米硬件底层协议：1=playing, 2=paused, 0=stopped）
+          if (parsed.status === 1) state = 'playing';
+          else if (parsed.status === 2) state = 'paused';
+          else if (parsed.status === 0) state = 'stopped';
+          
+          // 播放进度（云端返回毫秒，转换为秒）
+          if (parsed.play_song_detail) {
+            const d = parsed.play_song_detail;
+            if (typeof d.position === 'number') position = Math.floor(d.position / 1000);
+          }
+        } catch (e: any) {
+          songloft.log.warn('[/mina/status] 获取物理状态解析失败，触发降级保护: ' + String(e));
         }
       }
 
